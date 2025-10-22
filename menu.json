@@ -1,0 +1,24 @@
+{
+  "categories": [
+    {
+      "name": "Ingkung & Ayam",
+      "items": [
+        { "id": "i001", "name": "Ingkung Ayam Kampung Original", "description": "Ayam utuh dengan bumbu gurih meresap.", "price": 95000, "image_url": "https://i.ibb.co/F8zGzQ2/ingkung-original.jpg" },
+        { "id": "i002", "name": "Ingkung Ayam Bakar Madu", "description": "Rasa manis madu bertemu gurihnya rempah.", "price": 105000, "image_url": "https://i.ibb.co/z5pD1V6/ingkung-bakar.jpg" }
+      ]
+    },
+    {
+      "name": "Nasi & Lauk",
+      "items": [
+        { "id": "n001", "name": "Nasi Putih", "description": "Nasi putih pulen.", "price": 5000, "image_url": "https://i.ibb.co/3YYJ9j0/nasi-putih.jpg" }
+      ]
+    },
+    {
+      "name": "Minuman",
+      "items": [
+        { "id": "m001", "name": "Es Teh Manis Jumbo", "description": "Segarnya es teh jumbo.", "price": 6000, "image_url": "https://i.ibb.co/qY7gM4j/es-teh.jpg" },
+        { "id": "m002", "name": "Es Jeruk", "description": "Perasan jeruk asli.", "price": 8000, "image_url": "https://i.ibb.co/yQn7qfB/es-jeruk.jpg" }
+      ]
+    }
+  ]
+}
