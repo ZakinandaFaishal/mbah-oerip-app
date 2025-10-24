@@ -1,6 +1,5 @@
-// Model untuk merepresentasikan satu item menu
 class MenuItem {
-  final String id;
+  final int id;
   final String name;
   final String description;
   final int price;
@@ -22,5 +21,21 @@ class MenuItem {
       price: json['price'],
       imageUrl: json['image_url'],
     );
+  }
+}
+
+class Zaki {
+  final int id;
+  final String name;
+  final List<MenuItem> menuItems;
+
+  Zaki({required this.id, required this.name, required this.menuItems});
+
+  factory Zaki.fromJson(Map<String, dynamic> json) {
+    var items =
+        (json['menu_items'] as List<dynamic>? ?? [])
+            .map((e) => MenuItem.fromJson(e))
+            .toList();
+    return Zaki(id: json['id'], name: json['name'], menuItems: items);
   }
 }
