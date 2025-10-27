@@ -2,34 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
-import 'main_screen.dart';
+import 'main_screen.dart'; // pastikan file ini ADA
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
-  _SplashScreenState createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkLoginAndNavigate();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkLoginAndNavigate();
+    });
   }
 
   Future<void> _checkLoginAndNavigate() async {
-    // Beri sedikit jeda agar splash screen terlihat
+    // Delay agar splash terlihat
     await Future.delayed(const Duration(seconds: 2));
 
-    // Dapatkan provider tanpa listen karena kita hanya butuh status awal
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    // Pastikan state masih mounted agar tidak error setelah navigasi
+    if (!mounted) return;
 
     if (authProvider.isLoggedIn) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => MainScreen()),
+        MaterialPageRoute(builder: (_) => const MainScreen()),
       );
     } else {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => LoginScreen()),
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
       );
     }
   }
@@ -42,7 +48,6 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Ganti dengan logo Anda
             Icon(Icons.restaurant, size: 80, color: Colors.brown),
             SizedBox(height: 20),
             Text(

@@ -24,18 +24,18 @@ class MenuItem {
   }
 }
 
-class Zaki {
+class Menu {
   final int id;
   final String name;
   final List<MenuItem> menuItems;
 
-  Zaki({required this.id, required this.name, required this.menuItems});
+  Menu({required this.id, required this.name, required this.menuItems});
 
-  factory Zaki.fromJson(Map<String, dynamic> json) {
+  factory Menu.fromJson(Map<String, dynamic> json) {
     var items =
         (json['menu_items'] as List<dynamic>? ?? [])
             .map((e) => MenuItem.fromJson(e))
             .toList();
-    return Zaki(id: json['id'], name: json['name'], menuItems: items);
+    return Menu(id: json['id'], name: json['name'], menuItems: items);
   }
 }

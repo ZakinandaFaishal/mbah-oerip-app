@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '/theme.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -11,98 +12,134 @@ class HomeScreen extends StatelessWidget {
     final fullName = authProvider.currentUserData?['fullName'] ?? "Pelanggan";
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 120.0,
-            backgroundColor: Colors.white,
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
-              title: Text(
-                'Hai, $fullName!',
-                style: const TextStyle(
-                  color: Colors.black87,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              background: Container(
-                color: Colors.brown[50],
+      backgroundColor: AppTheme.backgroundColor,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // ===== GREETING =====
+            Text(
+              "Hai, $fullName 👋",
+              style: AppTheme.headingStyle.copyWith(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.primaryColor,
               ),
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 4),
+            Text(
+              "Mau pesan apa hari ini?",
+              style: AppTheme.bodyStyle.copyWith(
+                fontSize: 15,
+                color: AppTheme.baseTextColor.withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // ===== PROMO BANNER =====
+            ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: Stack(
                 children: [
-                  // Promo Card
-                  const Text(
-                    "Promo Spesial Untukmu",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Image.network(
+                    "https://i.ibb.co/L5hB6M7/promo-banner.jpg",
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
                   ),
-                  const SizedBox(height: 10),
-                  Card(
-                    elevation: 2,
-                    clipBehavior: Clip.antiAlias,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    child: Container(
-                      height: 150,
-                      decoration: const BoxDecoration(
-                        image: DecorationImage(
-                          image: NetworkImage("https://i.ibb.co/L5hB6M7/promo-banner.jpg"),
-                          fit: BoxFit.cover,
-                        ),
+                  Container(
+                    height: 180,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.black.withOpacity(0.35),
+                          Colors.transparent
+                        ],
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  
-                  // Menu Rekomendasi
-                  const Text(
-                    "Rekomendasi Kami",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 220,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: const [
-                        RecommendationCard(
-                          image: "https://i.ibb.co/F8zGzQ2/ingkung-original.jpg",
-                          title: "Ingkung Original",
-                          price: "Rp 95.000",
-                        ),
-                        RecommendationCard(
-                          image: "https://i.ibb.co/z5pD1V6/ingkung-bakar.jpg",
-                          title: "Ingkung Bakar",
-                          price: "Rp 105.000",
-                        ),
-                        RecommendationCard(
-                          image: "https://i.ibb.co/yQn7qfB/es-jeruk.jpg",
-                          title: "Es Jeruk Segar",
-                          price: "Rp 8.000",
-                        ),
-                      ],
+                  const Positioned(
+                    left: 16,
+                    bottom: 16,
+                    child: Text(
+                      "Diskon Hingga 30%\nNikmati Ingkung Terbaik!",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+
+            const SizedBox(height: 28),
+
+            // ===== TITLE Rekomendasi =====
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Menu Rekomendasi",
+                  style: AppTheme.headingStyle.copyWith(
+                    fontSize: 19,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+                Text(
+                  "Lihat Semua",
+                  style: AppTheme.bodyStyle.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.accentColor,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // ===== CARD LIST =====
+            SizedBox(
+              height: 240,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: const [
+                  RecommendationCard(
+                    image: "https://i.ibb.co/F8zGzQ2/ingkung-original.jpg",
+                    title: "Ingkung Original",
+                    price: "Rp 95.000",
+                  ),
+                  RecommendationCard(
+                    image: "https://i.ibb.co/z5pD1V6/ingkung-bakar.jpg",
+                    title: "Ingkung Bakar",
+                    price: "Rp 105.000",
+                  ),
+                  RecommendationCard(
+                    image: "https://i.ibb.co/yQn7qfB/es-jeruk.jpg",
+                    title: "Es Jeruk Segar",
+                    price: "Rp 8.000",
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-// Widget terpisah untuk kartu rekomendasi
+// ===================================================================
+//  RECOMMENDATION CARD
+// ===================================================================
 class RecommendationCard extends StatelessWidget {
   final String image;
   final String title;
   final String price;
+
   const RecommendationCard({
     super.key,
     required this.image,
@@ -113,42 +150,74 @@ class RecommendationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 160,
-      margin: const EdgeInsets.only(right: 12),
-      child: Card(
-        elevation: 1.5,
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Image.network(
-              image,
-              height: 120,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => const Center(
-                child: Icon(Icons.broken_image, color: Colors.grey, size: 40),
+      width: 165,
+      margin: const EdgeInsets.only(right: 14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        splashColor: AppTheme.accentColor.withOpacity(0.1),
+        onTap: () {},
+        child: Card(
+          elevation: 4,
+          shadowColor: AppTheme.accentColor.withOpacity(0.2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            children: [
+              ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(18)),
+                child: Image.network(
+                  image,
+                  height: 115,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                title,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const Spacer(),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                price,
-                style: const TextStyle(color: Colors.brown, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTheme.bodyStyle.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.baseTextColor,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      price,
+                      style: AppTheme.bodyStyle.copyWith(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.accentColor,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.accentColor,
+                          foregroundColor: Colors.white,
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 9),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {},
+                        child: const Text("Pesan"),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );

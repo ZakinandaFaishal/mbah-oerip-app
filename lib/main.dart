@@ -27,21 +27,39 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Ingkung Mbah Oerip',
         theme: ThemeData(
-          primarySwatch: Colors.brown,
-          scaffoldBackgroundColor: const Color(0xFFF8F8F8),
-          appBarTheme: const AppBarTheme(
-            elevation: 0.5,
-            centerTitle: true,
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black87,
-            titleTextStyle: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+        useMaterial3: true, // Tambahkan agar konsisten UI baru
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.brown),
+        primaryColor: Colors.brown,
+        scaffoldBackgroundColor: const Color(0xFFF8F8F8),
+
+        appBarTheme: const AppBarTheme(
+          elevation: 0.5,
+          centerTitle: true,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          titleTextStyle: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
           ),
-          fontFamily: 'Poppins', // Opsional: Tambahkan font kustom
         ),
+
+        inputDecorationTheme: InputDecorationTheme(
+          labelStyle: const TextStyle(color: Colors.brown),
+          floatingLabelStyle: const TextStyle(color: Colors.brown),
+          focusedBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.brown, width: 2),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.grey, width: 1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+
+        fontFamily: 'Poppins',
+      ),
+
         debugShowCheckedModeBanner: false,
         home: SplashScreen(),
         routes: {
