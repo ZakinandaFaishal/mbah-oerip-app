@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 class MenuItemPriceWidget extends StatelessWidget {
   final int priceInIDR;
 
-  // Static conversion rates (as of October 2023)
   static const double USD_RATE = 0.000064; // 1 IDR = 0.000064 USD
   static const double SGD_RATE = 0.000087; // 1 IDR = 0.000087 SGD
 
@@ -25,7 +24,6 @@ class MenuItemPriceWidget extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            // IDR Price
             Text(
               NumberFormat.currency(
                 locale: 'id_ID',

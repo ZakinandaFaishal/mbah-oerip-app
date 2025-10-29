@@ -50,8 +50,17 @@ dependencies:
   # Konversi Waktu
   timezone: ^0.9.2
 
-  # State Management (Sangat disarankan)
+  # State Management
   provider: ^6.0.5
+
+  # Untuk LBS
+  location: ^5.0.0
+
+  # Untuk membuka Google Maps & link
+  url_launcher: ^6.1.14  
+
+  carousel_slider: ^5.0.0
+  geocoding: ^2.1.0
 
 
 dev_dependencies:

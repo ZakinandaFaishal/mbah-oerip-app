@@ -1,152 +1,133 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:intl/intl.dart';
 
 class CurrencyConverterWidget extends StatefulWidget {
-  const CurrencyConverterWidget({super.key});
+  final int priceInIDR;
+  final Function(String) onCurrencyChanged;
+  final String? initialCurrency;
+
+  const CurrencyConverterWidget({
+    super.key,
+    required this.priceInIDR,
+    required this.onCurrencyChanged,
+    this.initialCurrency = 'IDR',
+  });
 
   @override
-  _CurrencyConverterWidgetState createState() => _CurrencyConverterWidgetState();
+  State<CurrencyConverterWidget> createState() => _CurrencyConverterWidgetState();
 }
 
 class _CurrencyConverterWidgetState extends State<CurrencyConverterWidget> {
-  final _idrController = TextEditingController();
-  Map<String, double> _rates = {};
-  bool _isLoading = true;
-  String _error = '';
+  late String selectedCurrency;
 
-  // GANTI DENGAN API KEY ANDA
-  final String _apiKey = "YOUR_API_KEY";
+  // Static conversion rates (1 IDR = ...)
+  static const Map<String, double> conversionRates = {
+    'IDR': 1.0,
+    'USD': 0.000064,
+    'EUR': 0.000059,
+    'JPY': 0.0096,
+    'HKD': 0.0005,
+    'SGD': 0.000087,
+    'AUD': 0.00009,
+    'GBP': 0.000051,
+    'SAR': 0.00024,
+  };
+
+  static const Map<String, String> currencySymbols = {
+    'IDR': 'Rp',
+    'USD': '\$',
+    'EUR': '€',
+    'JPY': '¥',
+    'HKD': 'HK\$',
+    'SGD': 'S\$',
+    'AUD': 'A\$',
+    'GBP': '£',
+    'SAR': 'SR',
+  };
 
   @override
   void initState() {
     super.initState();
-    _fetchRates();
+    selectedCurrency = widget.initialCurrency ?? 'IDR';
   }
 
-  Future<void> _fetchRates() async {
-    final url = "https://v6.exchangerate-api.com/v6/$_apiKey/latest/IDR";
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['result'] == 'success') {
-          setState(() {
-            _rates['USD'] = data['conversion_rates']['USD'];
-            _rates['EUR'] = data['conversion_rates']['EUR'];
-            _rates['SGD'] = data['conversion_rates']['SGD'];
-            _isLoading = false;
-          });
-        }
-      } else {
-        throw Exception('Gagal memuat kurs');
-      }
-    } catch (e) {
-      setState(() {
-        _error = 'Tidak dapat mengambil data kurs. Cek koneksi atau API Key.';
-        _isLoading = false;
-      });
-    }
+  double _convertPrice(String currency) {
+    return widget.priceInIDR * (conversionRates[currency] ?? 1.0);
   }
 
-  double _convert(double amount, String currency) {
-    if (_rates.containsKey(currency)) {
-      return amount * _rates[currency]!;
+  String _formatPrice(double price, String currency) {
+    if (currency == 'IDR') {
+      return NumberFormat.currency(
+        locale: 'id_ID',
+        symbol: currencySymbols[currency],
+        decimalDigits: 0,
+      ).format(price);
+    } else if (currency == 'JPY') {
+      return '${currencySymbols[currency]}${price.toStringAsFixed(0)}';
+    } else {
+      return '${currencySymbols[currency]}${price.toStringAsFixed(2)}';
     }
-    return 0.0;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Konversi Mata Uang", style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _idrController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Jumlah dalam IDR (Rupiah)',
-                prefixText: 'Rp ',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                setState(() {}); // Trigger rebuild untuk update hasil konversi
-              },
-            ),
-            const SizedBox(height: 16),
-            if (_isLoading)
-              const Center(child: CircularProgressIndicator())
-            else if (_error.isNotEmpty)
-              Center(child: Text(_error, style: const TextStyle(color: Colors.red)))
-            else
-              _buildConversionResults(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildConversionResults() {
-    final amountIDR = double.tryParse(_idrController.text) ?? 0.0;
-    
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ConversionResultRow(
-          currency: "USD",
-          value: _convert(amountIDR, 'USD'),
-          symbol: '\$',
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: DropdownButton<String>(
+            value: selectedCurrency,
+            isExpanded: true,
+            underline: const SizedBox(),
+            items: conversionRates.keys.map((currency) {
+              return DropdownMenuItem(
+                value: currency,
+                child: Text(
+                  currency,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => selectedCurrency = value);
+                widget.onCurrencyChanged(value);
+              }
+            },
+          ),
         ),
-        ConversionResultRow(
-          currency: "EUR",
-          value: _convert(amountIDR, 'EUR'),
-          symbol: '€',
-        ),
-        ConversionResultRow(
-          currency: "SGD",
-          value: _convert(amountIDR, 'SGD'),
-          symbol: 'S\$',
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.orange.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.shade200),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Harga:',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              Text(
+                _formatPrice(_convertPrice(selectedCurrency), selectedCurrency),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange.shade700,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
-    );
-  }
-}
-
-// Widget terpisah untuk baris hasil konversi
-class ConversionResultRow extends StatelessWidget {
-  final String currency;
-  final double value;
-  final String symbol;
-
-  const ConversionResultRow({
-    super.key,
-    required this.currency,
-    required this.value,
-    required this.symbol,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final formatter = NumberFormat.currency(locale: 'en_US', symbol: '$symbol ', decimalDigits: 2);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(currency, style: const TextStyle(fontSize: 16)),
-          Text(
-            formatter.format(value),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
     );
   }
 }

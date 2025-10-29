@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import '../models/menu_item.dart';
 import '/theme.dart';
 import 'menu_detail_screen.dart';
+import 'package:intl/intl.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -14,6 +15,8 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> {
   String selectedCategory = "Semua";
 
+  final ApiService _apiService = ApiService();
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -21,7 +24,7 @@ class _MenuScreenState extends State<MenuScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite.withOpacity(0.97),
 
-      // ================= APP BAR CUSTOM =================
+      // APP BAR CUSTOM
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(105),
         child: SafeArea(
@@ -48,9 +51,9 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
       ),
 
-      // ================= BODY =================
-      body: FutureBuilder<List<Menu>>(
-        future: ApiService().fetchAllMenuItems(),
+      // BODY
+      body: FutureBuilder<List<MenuItem>>(
+        future: _apiService.fetchAllMenuItems(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
@@ -58,19 +61,23 @@ class _MenuScreenState extends State<MenuScreen> {
             );
           }
           if (snapshot.hasError) {
-            return const Center(child: Text('Gagal memuat data'));
+            return Center(child: Text('Gagal memuat data: ${snapshot.error}'));
           }
 
-          final products = snapshot.data ?? [];
-          final categories = ["Semua", ...products.map((e) => e.name)];
+          final allMenuItems = snapshot.data ?? [];
 
+          // Ambil semua nama kategori unik dari daftar menu
+          final allCategoryNames = allMenuItems.map((item) => item.category.name).toSet().toList();
+          final categories = ["Semua", ...allCategoryNames];
+
+          // Logika filter yang baru dan benar
           final filteredMenuItems = selectedCategory == "Semua"
-              ? products.expand((m) => m.menuItems).toList()
-              : products.firstWhere((m) => m.name == selectedCategory).menuItems.toList();
+              ? allMenuItems // Jika "Semua", tampilkan semua
+              : allMenuItems.where((item) => item.category.name == selectedCategory).toList(); // Filter berdasarkan nama kategori
 
           return Column(
             children: [
-              // ================= CATEGORY TAB =================
+              // CATEGORY TAB (Kode ini sudah benar)
               SizedBox(
                 height: 50,
                 child: ListView.separated(
@@ -110,14 +117,14 @@ class _MenuScreenState extends State<MenuScreen> {
 
               const SizedBox(height: 12),
 
-              // ================= MENU GRID =================
+              // GRID MENU (Logika onTap diperbaiki)
               Expanded(
                 child: GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: EdgeInsets.symmetric(horizontal: 16),
                   itemCount: filteredMenuItems.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.78,
+                    childAspectRatio: 0.76, // Sesuaikan rasio agar pas
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
@@ -125,68 +132,57 @@ class _MenuScreenState extends State<MenuScreen> {
                     final item = filteredMenuItems[index];
                     return GestureDetector(
                       onTap: () {
+                        // 4. LOGIKA NAVIGASI DIPERBAIKI
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => MenuDetailScreen(item: item),
+                            builder: (_) => MenuDetailScreen(
+                              item: item,
+                              // Ambil nama kategori langsung dari item
+                              categoryName: item.category.name,
+                            ),
                           ),
                         );
+                        // ---- AKHIR PERBAIKAN ----
                       },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppTheme.backgroundWhite,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primaryColor.withOpacity(0.15),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            ClipRRect(
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                      child: Column(
+                        // --- GRID ---
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
                               child: Image.network(
                                 item.imageUrl,
-                                height: 120,
-                                width: double.infinity,
                                 fit: BoxFit.cover,
+                                width: double.infinity,
+                                errorBuilder: (context, error, stackTrace) =>
+                                  Icon(Icons.broken_image, color: Colors.grey, size: 40),
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item.name,
-                                    maxLines: 1,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
-                                      color: AppTheme.primaryColor,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 5),
-                                  Text(
-                                    "Rp ${item.price}",
-                                    style: TextStyle(
-                                      color: AppTheme.accentColor,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          ],
-                        ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(item.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                                color: AppTheme.primaryColor,
+                              )),
+                          Text(
+                              NumberFormat.currency(
+                                locale: 'id_ID',
+                                symbol: 'Rp ',
+                                decimalDigits: 0,
+                              ).format(item.price),
+                              style: TextStyle(color: Colors.black54)),
+                        ],
                       ),
                     );
                   },
                 ),
-              ),
+              )
             ],
           );
         },
@@ -194,3 +190,4 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 }
+

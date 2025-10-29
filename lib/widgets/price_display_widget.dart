@@ -5,7 +5,6 @@ class PriceDisplayWidget extends StatelessWidget {
   final int priceInIDR;
   final bool showOtherCurrencies;
 
-  // Static conversion rates (as of October 2023)
   static const double USD_RATE = 0.000064; // 1 IDR = 0.000064 USD
   static const double SGD_RATE = 0.000087; // 1 IDR = 0.000087 SGD
 
@@ -17,7 +16,6 @@ class PriceDisplayWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Format IDR price
     final idrFormatter = NumberFormat.currency(
       locale: 'id_ID',
       symbol: 'Rp ',

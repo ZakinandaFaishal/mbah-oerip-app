@@ -33,15 +33,19 @@ class AuthProvider extends ChangeNotifier {
     return digest.toString();
   }
 
-  Future<bool> register(String username, String password, String fullName) async {
+  Future<bool> register(
+    String username,
+    String password,
+    String fullName,
+  ) async {
     if (_userBox.containsKey(username)) {
-      return false; // Username sudah ada
+      return false;
     }
     final hashedPassword = _hashPassword(password);
     _userBox.put(username, {
       'passwordHash': hashedPassword,
       'fullName': fullName,
-      'profilePic': null, // Nanti bisa dikembangkan untuk upload gambar
+      'profilePic': null,
     });
     return true;
   }

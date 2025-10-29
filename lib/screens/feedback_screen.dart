@@ -23,7 +23,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         const SnackBar(content: Text('Terima kasih atas saran & kesannya!')),
       );
 
-      // Kembali ke halaman sebelumnya
       Navigator.of(context).pop();
     }
   }

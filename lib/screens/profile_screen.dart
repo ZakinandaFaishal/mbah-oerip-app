@@ -19,7 +19,6 @@ class ProfileScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             onPressed: () {
-              // TODO: Buat halaman Edit Profil
             },
           )
         ],
@@ -93,7 +92,6 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-// Widget untuk item menu di halaman profil
 class ProfileMenuItem extends StatelessWidget {
   final IconData icon;
   final String title;

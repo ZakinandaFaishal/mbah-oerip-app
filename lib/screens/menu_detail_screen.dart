@@ -1,159 +1,230 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../models/menu_item.dart';
-import '../widgets/price_display_widget.dart';
-import '../widgets/time_converter_widget.dart';
 import '/theme.dart';
+import '../providers/cart_provider.dart';
 
-class MenuDetailScreen extends StatelessWidget {
+class MenuDetailScreen extends StatefulWidget {
   final MenuItem item;
-  const MenuDetailScreen({required this.item, super.key});
+  final String categoryName;
+
+  const MenuDetailScreen({
+    super.key,
+    required this.item,
+    required this.categoryName,
+  });
+
+  @override
+  State<MenuDetailScreen> createState() => _MenuDetailScreenState();
+}
+
+class _MenuDetailScreenState extends State<MenuDetailScreen> {
+  String _convert(double amount, String currency) {
+    // Asumsi 1 USD = Rp 16.300
+    const double rateUSD = 1.0 / 16300.0;
+    // Asumsi 1 EUR = Rp 17.500
+    const double rateEUR = 1.0 / 17500.0;
+    // Asumsi 1 SGD = Rp 12.000
+    const double rateSGD = 1.0 / 12000.0;
+
+    double convertedValue = 0.0;
+
+    switch (currency) {
+      case "USD":
+        convertedValue = amount * rateUSD;
+        break;
+      case "EUR":
+        convertedValue = amount * rateEUR;
+        break;
+      case "SGD":
+        convertedValue = amount * rateSGD;
+        break;
+    }
+
+    final formatter = NumberFormat.currency(
+      locale: 'en_US',
+      symbol: '$currency ',
+      decimalDigits: 2,
+    );
+    return formatter.format(convertedValue);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final currencyFormatter = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+    final formattedPrice = currencyFormatter.format(widget.item.price);
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
-
-      // 🔹 AppBar
       appBar: AppBar(
-        backgroundColor: AppTheme.primaryColor,
-        elevation: 0.3,
         title: Text(
-          item.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
+          widget.item.name,
+          style: TextStyle(color: AppTheme.primaryColor),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: AppTheme.backgroundWhite,
+        elevation: 0.5,
+        iconTheme: IconThemeData(color: AppTheme.primaryColor),
       ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Gambar Produk
+            Image.network(
+              widget.item.imageUrl,
+              width: double.infinity,
+              height: 300,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                height: 300,
+                color: Colors.grey[200],
+                child: Icon(Icons.broken_image, color: Colors.grey, size: 60),
+              ),
+            ),
 
-      // 🔹 Tombol Pesan Sekarang (Bottom)
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(blurRadius: 10, color: Colors.black.withOpacity(0.1)),
+            // Detail Info
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Nama Kategori
+                  Text(
+                    widget.categoryName,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppTheme.accentColor.withOpacity(0.8),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+
+                  // Nama Produk
+                  Text(
+                    widget.item.name,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+
+                  // Harga
+                  Text(
+                    formattedPrice,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+
+                  // Deskripsi
+                  Text(
+                    widget.item.description,
+                    style: TextStyle(
+                      fontSize: 16,
+                      height: 1.5,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 24),
+
+                  // --- WIDGET KONVERSI MATA UANG (Integrasi) ---
+                  _buildCurrencyConverterWidget(),
+                ],
+              ),
+            ),
           ],
         ),
-        child: SizedBox(
-          height: 50,
+      ),
+
+      // Tombol Checkout/Pesan
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
           child: ElevatedButton(
+            onPressed: () {
+              context.read<CartProvider>().addItem(
+                id: widget.item.id, // sesuaikan dengan model
+                name: widget.item.name,
+                imageUrl: widget.item.imageUrl,
+                priceInIDR: widget.item.price,
+                quantity: 1,
+              );
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Ditambahkan ke keranjang')),
+              );
+            },
+            child: const Text('Tambah ke Keranjang'),
             style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              textStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               backgroundColor: AppTheme.primaryColor,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              textStyle: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
             ),
-            onPressed: () {
-              // TODO: Tambahkan ke keranjang / langsung order
-            },
-            child: const Text("Pesan Sekarang"),
           ),
         ),
       ),
+    );
+  }
 
-      // 🔹 Konten Utama
-      body: ListView(
+  Widget _buildCurrencyConverterWidget() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Gambar menu
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(
-              bottom: Radius.circular(28),
-            ),
-            child: Image.network(
-              item.imageUrl,
-              width: double.infinity,
-              height: 260,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                height: 260,
-                color: Colors.grey.shade200,
-                child: const Center(
-                  child: Icon(Icons.image_not_supported, size: 48),
-                ),
-              ),
-            ),
+          Text(
+            "Estimasi Harga (Mata Uang Asing)",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
+          SizedBox(height: 12),
+          Column(
+            children: [
+              _buildCurrencyRow(
+                "USD",
+                _convert(widget.item.price.toDouble(), "USD"),
+              ),
+              _buildCurrencyRow(
+                "EUR",
+                _convert(widget.item.price.toDouble(), "EUR"),
+              ),
+              _buildCurrencyRow(
+                "SGD",
+                _convert(widget.item.price.toDouble(), "SGD"),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
-          // Detail isi
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 22, 20, 100),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Nama menu
-                Text(
-                  item.name,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.primaryColor,
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-
-                // Harga
-                Text(
-                  "Rp ${item.price}",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.accentColor,
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Deskripsi
-                Text(
-                  item.description,
-                  style: TextStyle(
-                    fontSize: 15,
-                    height: 1.6,
-                    color: AppTheme.textColor.withOpacity(0.8),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Separator lembut
-                Divider(
-                  color: AppTheme.accentColor.withOpacity(0.2),
-                  thickness: 1,
-                ),
-
-                const SizedBox(height: 14),
-
-                // Info tambahan (optional)
-                Row(
-                  children: [
-                    Icon(
-                      Icons.timer_outlined,
-                      color: AppTheme.primaryColor.withOpacity(0.8),
-                      size: 22,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Waktu penyajian ± 10-15 menit",
-                      style: TextStyle(
-                        color: AppTheme.textColor.withOpacity(0.7),
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+  Widget _buildCurrencyRow(String currency, String price) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            currency,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+          Text(
+            price,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ],
       ),
