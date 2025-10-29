@@ -69,11 +69,16 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
-  void logout() {
-    _isLoggedIn = false;
-    _loggedInUser = null;
-    _sessionBox.delete('currentUser');
-    notifyListeners();
+  // Tambahkan atau perbarui method logout agar async
+  Future<void> logout() async {
+    try {
+      // bersihkan data sesi (sesuaikan key jika Anda menyimpan spesifik)
+      await _sessionBox.clear();
+    } finally {
+      _isLoggedIn = false;
+      _loggedInUser = null;
+      notifyListeners();
+    }
   }
 
   Map<dynamic, dynamic>? get currentUserData {

@@ -329,6 +329,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           final it = items[i];
                           return _MenuCard(
                             title: it.name,
+                            categoryName:
+                                it.category?.name ??
+                                '', // Tambahan: tampilkan kategori
                             priceText: idr.format(it.price),
                             imageUrl: it.imageUrl,
                             onTap: () {
@@ -338,6 +341,34 @@ class _HomeScreenState extends State<HomeScreen> {
                                   builder: (_) => MenuDetailScreen(
                                     item: it,
                                     categoryName: it.category?.name ?? 'Menu',
+                                  ),
+                                ),
+                              );
+                            },
+                            onAddCart: () {
+                              context.read<CartProvider>().addItem(
+                                id: it.id,
+                                name: it.name,
+                                imageUrl: it.imageUrl,
+                                priceInIDR: it.price,
+                                quantity: 1,
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text(
+                                    'Ditambahkan ke keranjang',
+                                  ),
+                                  duration: const Duration(milliseconds: 800),
+                                  action: SnackBarAction(
+                                    label: 'Buka',
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const CartScreen(),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
                               );
@@ -556,75 +587,147 @@ class _PromoCard extends StatelessWidget {
   }
 }
 
-class _MenuCard extends StatelessWidget {
+class _MenuCard extends StatefulWidget {
   final String imageUrl;
   final String title;
   final String priceText;
+  final String? categoryName; // Tambahan: kategori
   final VoidCallback onTap;
+  final VoidCallback? onAddCart;
 
   const _MenuCard({
     required this.imageUrl,
     required this.title,
     required this.priceText,
     required this.onTap,
+    this.categoryName, // Tambahan
+    this.onAddCart,
   });
 
   @override
+  State<_MenuCard> createState() => _MenuCardState();
+}
+
+class _MenuCardState extends State<_MenuCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _scaleAnim = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      elevation: 1,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Gambar
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                topRight: Radius.circular(12),
-              ),
-              child: Image.network(
-                imageUrl,
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  height: 120,
-                  color: Colors.grey.shade200,
-                  child: const Icon(Icons.image_not_supported),
+    return ScaleTransition(
+      scale: _scaleAnim,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Card(
+          elevation: 1,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image
+              Expanded(
+                child: Container(
+                  color: Colors.grey.shade100,
+                  child: Image.network(
+                    widget.imageUrl,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    errorBuilder: (_, __, ___) => Center(
+                      child: Icon(
+                        Icons.broken_image,
+                        color: Colors.grey.shade400,
+                        size: 48,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-            // Info
-            Expanded(
-              child: Padding(
+              // Info
+              Padding(
                 padding: const EdgeInsets.all(10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
+                      widget.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const Spacer(),
-                    Text(
-                      priceText,
                       style: const TextStyle(
-                        color: AppTheme.primaryOrange,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
                       ),
+                    ),
+                    if ((widget.categoryName ?? '').isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.categoryName!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          widget.priceText,
+                          style: const TextStyle(
+                            color: AppTheme.primaryOrange,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        if (widget.onAddCart != null)
+                          GestureDetector(
+                            onTap: widget.onAddCart,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryOrange.withOpacity(.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.add,
+                                size: 16,
+                                color: AppTheme.primaryOrange,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

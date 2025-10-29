@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/menu_item.dart';
 import '/theme.dart';
 import '../providers/cart_provider.dart';
+import 'cart_screen.dart'; // Tambah: untuk navigasi ke keranjang
 
 class MenuDetailScreen extends StatefulWidget {
   final MenuItem item;
@@ -20,44 +21,35 @@ class MenuDetailScreen extends StatefulWidget {
 }
 
 class _MenuDetailScreenState extends State<MenuDetailScreen> {
-  String _convert(double amount, String currency) {
-    // Asumsi 1 USD = Rp 16.300
-    const double rateUSD = 1.0 / 16300.0;
-    // Asumsi 1 EUR = Rp 17.500
-    const double rateEUR = 1.0 / 17500.0;
-    // Asumsi 1 SGD = Rp 12.000
-    const double rateSGD = 1.0 / 12000.0;
+  int _qty = 1;
 
-    double convertedValue = 0.0;
-
-    switch (currency) {
-      case "USD":
-        convertedValue = amount * rateUSD;
-        break;
-      case "EUR":
-        convertedValue = amount * rateEUR;
-        break;
-      case "SGD":
-        convertedValue = amount * rateSGD;
-        break;
+  String _formatAmount(double amount, String currency) {
+    final sym = CartProvider.currencySymbols[currency] ?? '';
+    if (currency == 'IDR') {
+      return NumberFormat.currency(
+        locale: 'id_ID',
+        symbol: '$sym ',
+        decimalDigits: 0,
+      ).format(amount);
     }
-
-    final formatter = NumberFormat.currency(
-      locale: 'en_US',
-      symbol: '$currency ',
-      decimalDigits: 2,
-    );
-    return formatter.format(convertedValue);
+    if (currency == 'JPY') {
+      return '$sym${amount.toStringAsFixed(0)}';
+    }
+    return '$sym${amount.toStringAsFixed(2)}';
   }
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormatter = NumberFormat.currency(
+    final cart = context.watch<CartProvider>();
+    final currency = cart.selectedCurrency;
+
+    final idr = NumberFormat.currency(
       locale: 'id_ID',
       symbol: 'Rp ',
       decimalDigits: 0,
     );
-    final formattedPrice = currencyFormatter.format(widget.item.price);
+    final converted = cart.convertFromIDR(widget.item.price);
+    final convertedText = _formatAmount(converted, currency);
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
@@ -69,6 +61,46 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
         backgroundColor: AppTheme.backgroundWhite,
         elevation: 0.5,
         iconTheme: IconThemeData(color: AppTheme.primaryColor),
+        actions: [
+          Stack(
+            alignment: Alignment.topRight,
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.shopping_cart_outlined,
+                  color: AppTheme.primaryOrange,
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CartScreen()),
+                  );
+                },
+              ),
+              if (cart.cartCount > 0)
+                Positioned(
+                  right: 6,
+                  top: 6,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '${cart.cartCount}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -83,7 +115,11 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
               errorBuilder: (context, error, stackTrace) => Container(
                 height: 300,
                 color: Colors.grey[200],
-                child: Icon(Icons.broken_image, color: Colors.grey, size: 60),
+                child: const Icon(
+                  Icons.broken_image,
+                  color: Colors.grey,
+                  size: 60,
+                ),
               ),
             ),
 
@@ -93,7 +129,7 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Nama Kategori
+                  // Kategori
                   Text(
                     widget.categoryName,
                     style: TextStyle(
@@ -102,7 +138,7 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
 
                   // Nama Produk
                   Text(
@@ -113,32 +149,77 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                       color: AppTheme.primaryColor,
                     ),
                   ),
-                  SizedBox(height: 16),
 
-                  // Harga
-                  Text(
-                    formattedPrice,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryColor,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-
-                  // Deskripsi
+                  // Deskripsi (dipindah ke bawah nama)
+                  const SizedBox(height: 8),
                   Text(
                     widget.item.description,
-                    style: TextStyle(
-                      fontSize: 16,
+                    style: const TextStyle(
+                      fontSize: 15,
                       height: 1.5,
                       color: Colors.black87,
                     ),
                   ),
-                  SizedBox(height: 24),
 
-                  // --- WIDGET KONVERSI MATA UANG (Integrasi) ---
-                  _buildCurrencyConverterWidget(),
+                  const SizedBox(height: 16),
+
+                  // Harga IDR
+                  Text(
+                    idr.format(widget.item.price),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryOrange,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Pilih Mata Uang + Harga Konversi
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: DropdownButton<String>(
+                              value: currency,
+                              isExpanded: true,
+                              underline: const SizedBox.shrink(),
+                              items: CartProvider.currencyRates.keys.map((c) {
+                                final sym =
+                                    CartProvider.currencySymbols[c] ?? '';
+                                return DropdownMenuItem(
+                                  value: c,
+                                  child: Text('$c ($sym)'),
+                                );
+                              }).toList(),
+                              onChanged: (v) =>
+                                  v != null ? cart.setCurrency(v) : null,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          convertedText,
+                          style: const TextStyle(
+                            color: AppTheme.primaryOrange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
@@ -146,87 +227,84 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
         ),
       ),
 
-      // Tombol Checkout/Pesan
+      // Bottom bar: stepper + tombol tambah ke keranjang (selaras UX Home)
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ElevatedButton(
-            onPressed: () {
-              context.read<CartProvider>().addItem(
-                id: widget.item.id, // sesuaikan dengan model
-                name: widget.item.name,
-                imageUrl: widget.item.imageUrl,
-                priceInIDR: widget.item.price,
-                quantity: 1,
-              );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Ditambahkan ke keranjang')),
-              );
-            },
-            child: const Text('Tambah ke Keranjang'),
-            style: ElevatedButton.styleFrom(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              textStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCurrencyConverterWidget() {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Estimasi Harga (Mata Uang Asing)",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 12),
-          Column(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: Row(
             children: [
-              _buildCurrencyRow(
-                "USD",
-                _convert(widget.item.price.toDouble(), "USD"),
+              // Qty Stepper
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: _qty > 1 ? () => setState(() => _qty--) : null,
+                      icon: const Icon(Icons.remove),
+                      constraints: const BoxConstraints(),
+                    ),
+                    Text(
+                      '$_qty',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      onPressed: () => setState(() => _qty++),
+                      icon: const Icon(Icons.add),
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
               ),
-              _buildCurrencyRow(
-                "EUR",
-                _convert(widget.item.price.toDouble(), "EUR"),
-              ),
-              _buildCurrencyRow(
-                "SGD",
-                _convert(widget.item.price.toDouble(), "SGD"),
+              const SizedBox(width: 12),
+
+              // Add to cart
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    context.read<CartProvider>().addItem(
+                      id: widget.item.id,
+                      name: widget.item.name,
+                      imageUrl: widget.item.imageUrl,
+                      priceInIDR: widget.item.price,
+                      quantity: _qty,
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Ditambahkan ke keranjang'),
+                        duration: const Duration(milliseconds: 900),
+                        action: SnackBarAction(
+                          label: 'Buka',
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const CartScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.add_shopping_cart),
+                  label: const Text('Tambah ke Keranjang'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCurrencyRow(String currency, String price) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            currency,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-          ),
-          Text(
-            price,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-        ],
+        ),
       ),
     );
   }
