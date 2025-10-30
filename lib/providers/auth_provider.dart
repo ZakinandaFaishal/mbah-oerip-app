@@ -10,6 +10,9 @@ class AuthProvider extends ChangeNotifier {
 
   bool _isLoggedIn = false;
   String? _loggedInUser;
+  String _username = '';
+  String _displayName = '';
+  String? _phoneNumber = ''; // tambah penyimpanan no HP
 
   bool get isLoggedIn => _isLoggedIn;
   String get username => _loggedInUser ?? '';
@@ -28,6 +31,10 @@ class AuthProvider extends ChangeNotifier {
 
   String? get profilePicPath => currentUserData?['profilePic'] as String?;
 
+  // Getter phoneNumber yang aman (non-nullable) membaca dari Hive
+  String get phoneNumber =>
+      (currentUserData?['phoneNumber'] as String?)?.trim() ?? '';
+
   AuthProvider() {
     _checkLoginStatus();
   }
@@ -43,10 +50,24 @@ class AuthProvider extends ChangeNotifier {
     return digest.toString();
   }
 
+  // Panggil ini untuk update profil dari UI (tersimpan ke Hive)
+  void updateProfile({String? displayName, String? phoneNumber}) async {
+    if (_loggedInUser == null) return;
+    final data = Map<String, dynamic>.from(currentUserData ?? {});
+    if (displayName != null) data['fullName'] = displayName;
+    if (phoneNumber != null) data['phoneNumber'] = phoneNumber;
+    await _userBox.put(_loggedInUser, data);
+    // sinkronkan cache lokal opsional
+    if (displayName != null) _displayName = displayName;
+    if (phoneNumber != null) _phoneNumber = phoneNumber;
+    notifyListeners();
+  }
+
   Future<bool> register(
     String username,
     String password,
     String fullName,
+    String phoneNumber,
   ) async {
     if (_userBox.containsKey(username)) {
       return false; // Username sudah ada
@@ -56,7 +77,12 @@ class AuthProvider extends ChangeNotifier {
       'passwordHash': hashedPassword,
       'fullName': fullName,
       'profilePic': null,
+      'phoneNumber': phoneNumber,
     });
+    _username = username;
+    _displayName = fullName;
+    _phoneNumber = phoneNumber; // simpan no HP
+    notifyListeners();
     return true;
   }
 

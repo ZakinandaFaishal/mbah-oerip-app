@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _fullNameController = TextEditingController();
+  final _phoneController = TextEditingController(); // tambah controller
   bool _isLogin = true;
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -42,6 +43,7 @@ class _LoginScreenState extends State<LoginScreen>
     _usernameController.dispose();
     _passwordController.dispose();
     _fullNameController.dispose();
+    _phoneController.dispose(); // dispose
     super.dispose();
   }
 
@@ -59,10 +61,12 @@ class _LoginScreenState extends State<LoginScreen>
           _passwordController.text,
         );
       } else {
+        // tambahkan phoneNumber saat register
         success = await authProvider.register(
           _usernameController.text,
           _passwordController.text,
           _fullNameController.text,
+          _phoneController.text,
         );
         if (success) {
           success = await authProvider.login(
@@ -254,6 +258,24 @@ class _LoginScreenState extends State<LoginScreen>
                                   decoration: _buildInputDecoration(
                                     "Nama Lengkap",
                                     Icons.person_outline,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                // Nomor telepon saat registrasi
+                                TextFormField(
+                                  controller: _phoneController,
+                                  keyboardType: TextInputType.phone,
+                                  validator: (v) {
+                                    final t = v?.trim() ?? '';
+                                    if (t.isEmpty)
+                                      return 'Nomor telepon tidak boleh kosong';
+                                    if (t.length < 9)
+                                      return 'Nomor telepon tidak valid';
+                                    return null;
+                                  },
+                                  decoration: _buildInputDecoration(
+                                    "Nomor Telepon",
+                                    Icons.phone_outlined,
                                   ),
                                 ),
                                 const SizedBox(height: 16),
