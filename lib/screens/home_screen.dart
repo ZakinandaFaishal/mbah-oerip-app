@@ -36,19 +36,19 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Map<String, String>> _banners = const [
     {
       'image':
-          'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?q=80&w=1600&auto=format&fit=crop',
+          'https://pesonaborobudur.com/assets/upload/berita/berita_ingkung_002.jpg',
       'title': 'Diskon 30%',
       'subtitle': 'Untuk pembelian pertama',
     },
     {
       'image':
-          'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?q=80&w=1600&auto=format&fit=crop',
-      'title': 'Beli 2 Gratis 1',
-      'subtitle': 'Menu pilihan spesial',
+          'https://ingkungecombahoerip.web.id/assets/upload/image/slider6.jpg',
+      'title': 'Paket Keluarga',
+      'subtitle': 'Hemat hingga 25%',
     },
     {
       'image':
-          'https://images.unsplash.com/photo-1561758033-d89a9ad46330?q=80&w=1600&auto=format&fit=crop',
+          'https://www.pesonaborobudur.com/assets/upload/galeri/Ingkung_Bebek.jpg',
       'title': 'Gratis Ongkir',
       'subtitle': 'Khusus hari ini',
     },

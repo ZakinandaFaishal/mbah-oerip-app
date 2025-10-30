@@ -4,31 +4,37 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
 class AuthProvider extends ChangeNotifier {
-  // Box sudah dibuka di main.dart, jadi ini aman
+  // Box sudah dibuka di main.dart
   final Box _userBox = Hive.box('users');
   final Box _sessionBox = Hive.box('session');
 
   bool _isLoggedIn = false;
-  bool get isLoggedIn => _isLoggedIn;
-
   String? _loggedInUser;
-  String? get loggedInUser => _loggedInUser;
 
-  // Konstruktor akan langsung memeriksa status login saat provider dibuat
+  bool get isLoggedIn => _isLoggedIn;
+  String get username => _loggedInUser ?? '';
+
+  Map<String, dynamic>? get currentUserData {
+    if (_loggedInUser == null) return null;
+    final raw = _userBox.get(_loggedInUser);
+    if (raw is Map) return Map<String, dynamic>.from(raw as Map);
+    return null;
+  }
+
+  String get displayName =>
+      currentUserData?['fullName']?.toString().trim().isNotEmpty == true
+      ? currentUserData!['fullName'] as String
+      : username;
+
+  String? get profilePicPath => currentUserData?['profilePic'] as String?;
+
   AuthProvider() {
     _checkLoginStatus();
   }
 
-  // Metode ini memeriksa sesi yang tersimpan
   void _checkLoginStatus() {
-    _loggedInUser = _sessionBox.get('currentUser');
-    if (_loggedInUser != null && _userBox.containsKey(_loggedInUser)) {
-      _isLoggedIn = true;
-    } else {
-      _isLoggedIn = false;
-    }
-    // Tidak perlu notifyListeners() di sini karena ini terjadi di konstruktor
-    // sebelum widget lain mendengarkan.
+    _loggedInUser = _sessionBox.get('currentUser') as String?;
+    _isLoggedIn = _loggedInUser != null;
   }
 
   String _hashPassword(String password) {
@@ -80,10 +86,12 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Map<dynamic, dynamic>? get currentUserData {
-    if (_loggedInUser != null) {
-      return _userBox.get(_loggedInUser);
-    }
-    return null;
+  // Tambahkan helper untuk update foto profil
+  Future<void> updateProfilePic(String? filePath) async {
+    if (_loggedInUser == null) return;
+    final data = Map<String, dynamic>.from(currentUserData ?? {});
+    data['profilePic'] = filePath; // boleh null untuk hapus foto
+    await _userBox.put(_loggedInUser, data);
+    notifyListeners();
   }
 }

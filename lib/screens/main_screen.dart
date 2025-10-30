@@ -6,7 +6,6 @@ import 'orders_screen.dart';
 import 'vouchers_screen.dart';
 import '../widgets/main/custom_bottom_nav_bar.dart';
 import '../widgets/main/fab_home_button.dart';
-import '../theme.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});

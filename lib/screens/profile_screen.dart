@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -10,7 +11,14 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.read<AuthProvider>();
+    final auth = context.watch<AuthProvider>(); // watch agar UI update
+
+    // Siapkan avatar image jika ada path tersimpan
+    ImageProvider? avatar;
+    final pic = auth.profilePicPath;
+    if (pic != null && pic.isNotEmpty && File(pic).existsSync()) {
+      avatar = FileImage(File(pic));
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -23,6 +31,61 @@ class ProfileScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
+          // Header profil: foto + nama + username
+          Card(
+            elevation: 0,
+            color: Colors.white,
+            surfaceTintColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: Colors.grey.shade200),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 32,
+                    backgroundColor: AppTheme.primaryOrange.withOpacity(.15),
+                    backgroundImage: avatar,
+                    child: avatar == null
+                        ? const Icon(
+                            Icons.person,
+                            color: AppTheme.primaryOrange,
+                            size: 32,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          auth.displayName.isEmpty
+                              ? 'Pengguna'
+                              : auth.displayName,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          auth.username.isEmpty ? '' : '@${auth.username}',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Menu
           Card(
             elevation: 0,
             color: Colors.grey.shade50,
@@ -42,7 +105,7 @@ class ProfileScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => FeedbackScreen()),
+                      MaterialPageRoute(builder: (_) => const FeedbackScreen()),
                     );
                   },
                 ),

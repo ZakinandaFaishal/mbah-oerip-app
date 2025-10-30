@@ -17,6 +17,8 @@ void main() async {
   // Buka semua box yang akan digunakan di sini
   await Hive.openBox('users');
   await Hive.openBox('session');
+  await Hive.openBox('feedback');
+
 
   runApp(
     MultiProvider(
