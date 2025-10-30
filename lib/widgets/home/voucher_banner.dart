@@ -2,7 +2,21 @@ import 'package:flutter/material.dart';
 import '../../theme.dart';
 
 class VoucherBanner extends StatelessWidget {
-  const VoucherBanner({super.key});
+  const VoucherBanner({
+    super.key,
+    this.title = 'Gunakan Voucher',
+    this.subtitle = 'Potongan hingga 30% untuk menu favoritmu',
+    this.imageUrl =
+        'https://lh3.googleusercontent.com/gps-cs-s/AG0ilSzdAI_Iu8tmlg22T5ItelnRmdR3ncK94d8xs-CMuLPWvqGbNMrJx-57d7mMdXreBp2Kyfn_3oBC-93PdomzQ_Wpb66HqEJWjPegLa1IiA0A_F9uRPA0iytqCRSrecr4CmG5MV_umw=s680-w680-h510-rw',
+    this.buttonLabel = 'Pakai',
+    this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final String imageUrl;
+  final String buttonLabel;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -14,10 +28,7 @@ class VoucherBanner extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             // Background image
-            Image.network(
-              'https://lh3.googleusercontent.com/gps-cs-s/AG0ilSzdAI_Iu8tmlg22T5ItelnRmdR3ncK94d8xs-CMuLPWvqGbNMrJx-57d7mMdXreBp2Kyfn_3oBC-93PdomzQ_Wpb66HqEJWjPegLa1IiA0A_F9uRPA0iytqCRSrecr4CmG5MV_umw=s680-w680-h510-rw',
-              fit: BoxFit.cover,
-            ),
+            Image.network(imageUrl, fit: BoxFit.cover),
             // Overlay gelap
             Container(color: Colors.black.withOpacity(0.35)),
             // Konten
@@ -42,21 +53,21 @@ class VoucherBanner extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
+                      children: [
                         Text(
-                          'Gunakan Voucher',
-                          style: TextStyle(
+                          title,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
-                          'Potongan hingga 30% untuk menu favoritmu',
+                          subtitle,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: Colors.white70),
+                          style: const TextStyle(color: Colors.white70),
                         ),
                       ],
                     ),
@@ -75,8 +86,8 @@ class VoucherBanner extends StatelessWidget {
                       ),
                       elevation: 0,
                     ),
-                    onPressed: () {},
-                    child: const Text('Pakai'),
+                    onPressed: onTap,
+                    child: Text(buttonLabel),
                   ),
                 ],
               ),
