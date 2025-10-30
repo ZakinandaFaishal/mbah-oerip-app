@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
-import 'package:latlong2/latlong.dart';
 import '../../services/location_services.dart';
 
 class OpeningHoursCard extends StatefulWidget {
@@ -30,18 +29,17 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
 
   // Jadwal outlet per hari (WIB)
   final Map<int, Map<String, int>> _schedule = const {
-      1: {'open': 8, 'close': 21},
-      2: {'open': 8, 'close': 21},
-      3: {'open': 8, 'close': 21},
-      4: {'open': 8, 'close': 21},
-      5: {'open': 8, 'close': 22},
-      6: {'open': 6, 'close': 22},
-      7: {'open': 6, 'close': 22},
+    1: {'open': 8, 'close': 21},
+    2: {'open': 8, 'close': 21},
+    3: {'open': 8, 'close': 21},
+    4: {'open': 8, 'close': 21},
+    5: {'open': 8, 'close': 22},
+    6: {'open': 6, 'close': 22},
+    7: {'open': 6, 'close': 22},
   };
 
   late tz.Location _baseLoc;
   late tz.Location _userLoc;
-  late tz.TZDateTime _userDateTime;
 
   @override
   void initState() {
@@ -50,11 +48,7 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
     _baseLoc = tz.getLocation(_baseZoneId);
     // default user: WIB
     _userLoc = tz.getLocation('Asia/Jakarta');
-    _userDateTime = tz.TZDateTime.now(_userLoc).add(const Duration(hours: 2));
   }
-
-  String _fmt(tz.TZDateTime dt) =>
-      DateFormat('EEE, dd MMM yyyy HH:mm', 'id_ID').format(dt);
 
   Map<String, int> _hoursForBaseDate(tz.TZDateTime baseDt) =>
       _schedule[baseDt.weekday] ?? const {'open': 8, 'close': 21};
@@ -80,69 +74,7 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
     return baseDt.isAfter(open) && baseDt.isBefore(close);
   }
 
-  // Hitung 3 slot rekomendasi (kelipatan 30 menit) berbasis WIB, konversi ke zona user
-  List<Map<String, tz.TZDateTime>> _recommendSlots(String userZoneId) {
-    final userLoc = tz.getLocation(userZoneId);
-    final nowBase = tz.TZDateTime.now(_baseLoc);
-
-    tz.TZDateTime hours(tz.TZDateTime d, int hh) =>
-        tz.TZDateTime(_baseLoc, d.year, d.month, d.day, hh, 0);
-
-    tz.TZDateTime openOf(tz.TZDateTime d) =>
-        hours(d, _hoursForBaseDate(d)['open']!);
-    tz.TZDateTime closeOf(tz.TZDateTime d) =>
-        hours(d, _hoursForBaseDate(d)['close']!);
-
-    tz.TZDateTime roundUp30(tz.TZDateTime t) {
-      final add = (t.minute % 30 == 0 && t.second == 0 && t.millisecond == 0)
-          ? 0
-          : 30 - (t.minute % 30);
-      final base = tz.TZDateTime(
-        t.location,
-        t.year,
-        t.month,
-        t.day,
-        t.hour,
-        t.minute,
-      );
-      final adjusted = base.add(Duration(minutes: add));
-      // TZDateTime tidak punya copyWith -> buat ulang agar detik/milis = 0
-      return tz.TZDateTime(
-        adjusted.location,
-        adjusted.year,
-        adjusted.month,
-        adjusted.day,
-        adjusted.hour,
-        adjusted.minute,
-      );
-    }
-
-    tz.TZDateTime cursor;
-    final o = openOf(nowBase);
-    final c = closeOf(nowBase);
-    if (nowBase.isBefore(o)) {
-      cursor = o;
-    } else if (nowBase.isAfter(c)) {
-      cursor = openOf(nowBase.add(const Duration(days: 1)));
-    } else {
-      cursor = roundUp30(nowBase);
-    }
-
-    final res = <Map<String, tz.TZDateTime>>[];
-    while (res.length < 3) {
-      final close = closeOf(cursor);
-      if (!cursor.isBefore(close)) {
-        cursor = openOf(cursor.add(const Duration(days: 1)));
-      }
-      final baseSlot = cursor;
-      res.add({
-        'baseWib': baseSlot,
-        'userLocal': tz.TZDateTime.from(baseSlot, userLoc),
-      });
-      cursor = cursor.add(const Duration(minutes: 30));
-    }
-    return res;
-  }
+  // Catatan: fungsi rekomendasi slot per 30 menit digantikan dengan rekomendasi sarapan/siang/malam
 
   // Rekomendasi waktu makan (Sarapan, Siang, Malam) berdasarkan zona user
   // Menyesuaikan ke jam operasional outlet (WIB). Jika di luar jam, digeser ke
@@ -150,10 +82,7 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
   List<({String label, tz.TZDateTime baseWib, tz.TZDateTime userLocal})>
   _mealRecommendations(String userZoneId) {
     final userLoc = tz.getLocation(userZoneId);
-    final nowBase = tz.TZDateTime.now(_baseLoc);
-
-    tz.TZDateTime hours(tz.TZDateTime d, int hh, int mm) =>
-        tz.TZDateTime(_baseLoc, d.year, d.month, d.day, hh, mm);
+    // final nowBase = tz.TZDateTime.now(_baseLoc); // tidak digunakan
 
     tz.TZDateTime openOf(tz.TZDateTime d) => tz.TZDateTime(
       _baseLoc,

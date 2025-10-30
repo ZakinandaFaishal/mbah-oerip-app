@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:location/location.dart' as loc;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geocoding/geocoding.dart' as geo;
-import 'package:timezone/timezone.dart' as tz; // tambah
 
 class UserTimeZoneInfo {
   final String zoneId; // contoh: Asia/Jakarta, Asia/Makassar, Europe/London

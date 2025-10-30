@@ -8,27 +8,20 @@ import '../widgets/main/custom_bottom_nav_bar.dart';
 import '../widgets/main/fab_home_button.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final int initialIndex; // tab awal: 0=Home, 1=Menu, 2=Pesanan, 3=Voucher, 4=Profile
+  const MainScreen({super.key, this.initialIndex = 0});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0; // 0 = Home (FAB tengah)
-
-  late final List<Widget> _pages;
+  late int _selectedIndex;
 
   @override
   void initState() {
     super.initState();
-    _pages = [
-      const HomeScreen(),
-      const MenuScreen(),
-      const OrdersScreen(),
-      const VouchersScreen(),
-      const ProfileScreen(),
-    ];
+    _selectedIndex = widget.initialIndex; // gunakan tab awal
   }
 
   void _onItemTapped(int index) {
@@ -46,8 +39,16 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true, // penting agar area notch/celah benar-benar transparan
-      body: IndexedStack(index: _selectedIndex, children: _pages),
+      extendBody: true, // biar konten di bawah BottomAppBar transparan
+      resizeToAvoidBottomInset:
+          false, // <-- tambahkan: FAB & bottom bar tidak ikut naik saat keyboard muncul
+      body: IndexedStack(index: _selectedIndex, children: [
+        const HomeScreen(),
+        const MenuScreen(),
+        const OrdersScreen(),
+        const VouchersScreen(),
+        const ProfileScreen(),
+      ]),
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _selectedIndex == 0 ? 0 : _selectedIndex - 1,
         onTap: _onItemTapped,

@@ -8,6 +8,7 @@ import '../providers/cart_provider.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
 import 'menu_detail_screen.dart';
+import 'cart_screen.dart';
 
 // Widgets terpisah
 import '../widgets/menu/outlet_appbar_title.dart';
@@ -85,6 +86,50 @@ class _MenuScreenState extends State<MenuScreen> {
     return filtered;
   }
 
+  // Helper: tampilkan snackbar modern
+  void _showModernSnackBar({
+    required String message,
+    required IconData icon,
+    required Color color,
+    String? actionLabel,
+    VoidCallback? onAction,
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 8,
+        duration: duration,
+        action: actionLabel != null
+            ? SnackBarAction(
+                label: actionLabel,
+                textColor: Colors.white,
+                onPressed: onAction ?? () {},
+              )
+            : null,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final idr = NumberFormat.currency(
@@ -99,16 +144,15 @@ class _MenuScreenState extends State<MenuScreen> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        centerTitle: true, // center judul
-        automaticallyImplyLeading: false, // hilangkan space leading default
-        toolbarHeight: 80, // beri ruang untuk 2 baris (brand + dropdown)
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+        toolbarHeight: 80,
         title: OutletAppBarTitle(
           brandTitle: 'Ingkung Eco Mbah Oerip',
           outlets: _outlets,
           selected: _selectedOutlet,
           onChanged: (val) {
             setState(() => _selectedOutlet = val);
-            // TODO: filter berdasarkan outlet jika perlu
           },
         ),
       ),
@@ -191,17 +235,19 @@ class _MenuScreenState extends State<MenuScreen> {
                             priceInIDR: item.price,
                             quantity: 1,
                           );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Ditambahkan ke keranjang'),
-                              duration: const Duration(milliseconds: 800),
-                              action: SnackBarAction(
-                                label: 'Buka',
-                                onPressed: () {
-                                  // TODO: navigate to cart screen
-                                },
-                              ),
-                            ),
+                          _showModernSnackBar(
+                            message: '${item.name} ditambahkan ke keranjang',
+                            icon: Icons.check_circle,
+                            color: Colors.green.shade600,
+                            actionLabel: 'Lihat',
+                            onAction: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CartScreen(),
+                                ),
+                              );
+                            },
                           );
                         },
                       ),

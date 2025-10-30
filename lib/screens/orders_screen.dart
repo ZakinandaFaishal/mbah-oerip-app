@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ingkung_mbah_oerip/screens/main_screen.dart'; // tambahkan ini
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
@@ -71,11 +72,23 @@ class _UnpaidTab extends StatelessWidget {
   final NumberFormat idr;
   const _UnpaidTab({required this.idr});
 
+  String _formatAmount(double amount, String currency) {
+    final sym = CartProvider.currencySymbols[currency] ?? '';
+    if (currency == 'IDR') return '$sym ${amount.toStringAsFixed(0)}';
+    if (currency == 'JPY') return '$sym${amount.toStringAsFixed(0)}';
+    return '$sym${amount.toStringAsFixed(2)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
 
-    // Kosong → ajak buka keranjang
+    // Tambah jarak dinamis: tinggi nav bar + setengah tinggi FAB + safe area + margin kecil
+    final mq = MediaQuery.of(context);
+    final bottomLift =
+        kBottomNavigationBarHeight / 2 + mq.padding.bottom;
+    final contentBottomSpacer = bottomLift + 60;
+
     if (cart.items.isEmpty) {
       return ListView(
         padding: const EdgeInsets.all(24),
@@ -90,108 +103,483 @@ class _UnpaidTab extends StatelessWidget {
           const Center(
             child: Text(
               'Keranjang kosong',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),
           const SizedBox(height: 6),
           const Center(child: Text('Tambahkan menu untuk melanjutkan')),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Center(
-            child: OutlinedButton(
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.shopping_cart),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CartScreen()),
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (_) => const MainScreen(initialIndex: 1), // buka tab Menu
+                  ),
                 );
               },
-              child: const Text('Buka Keranjang'),
+              label: const Text('Tambah Menu'),
             ),
           ),
         ],
       );
     }
 
-    // Tampilkan isi cart + tombol Checkout
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
       children: [
-        ...cart.items.map(
-          (it) => ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                it.imageUrl,
-                width: 48,
-                height: 48,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 48,
-                  height: 48,
-                  color: Colors.grey.shade200,
-                  child: const Icon(Icons.image_not_supported),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryOrange.withOpacity(.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppTheme.primaryOrange.withOpacity(.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      color: AppTheme.primaryOrange,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '${cart.items.length} item dalam keranjang • Tipe: ${cart.orderType.name}',
+                        style: TextStyle(
+                          color: Colors.grey.shade700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            title: Text(it.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-            subtitle: Text('x${it.quantity} • ${idr.format(it.priceInIDR)}'),
-            trailing: Text(
-              idr.format(it.priceInIDR * it.quantity),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryOrange,
+              const SizedBox(height: 16),
+              const Text(
+                'Item Pesanan',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
-            ),
+              const SizedBox(height: 10),
+              ...cart.items.map((it) {
+                final convertedPrice = cart.convertFromIDR(it.priceInIDR);
+                final convertedTotal = convertedPrice * it.quantity;
+                final priceText = _formatAmount(
+                  convertedPrice,
+                  cart.selectedCurrency,
+                );
+                final totalText = _formatAmount(
+                  convertedTotal,
+                  cart.selectedCurrency,
+                );
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            it.imageUrl,
+                            width: 56,
+                            height: 56,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              width: 56,
+                              height: 56,
+                              color: Colors.grey.shade200,
+                              child: const Icon(Icons.image_not_supported),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                it.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                priceText,
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'x${it.quantity}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              totalText,
+                              style: const TextStyle(
+                                color: AppTheme.primaryOrange,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+              const SizedBox(height: 16),
+              SizedBox(height: contentBottomSpacer), // spacer dinamis
+            ],
           ),
         ),
-        const Divider(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Subtotal',
-              style: TextStyle(fontWeight: FontWeight.w600),
+        // Naikkan seluruh panel total dengan padding bawah eksternal
+        Padding(
+          padding: EdgeInsets.only(bottom: bottomLift),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              color: Colors.white,
             ),
-            Text(
-              idr.format(cart.subtotalIDR),
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Subtotal dipindah ke sini (di atas Mata Uang)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Subtotal',
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                idr.format(cart.subtotalIDR),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                _formatAmount(
+                                  cart.convertFromIDR(cart.subtotalIDR),
+                                  cart.selectedCurrency,
+                                ),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Item',
+                              style: TextStyle(fontWeight: FontWeight.w600)),
+                          Text(
+                            '${cart.itemCount} barang',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Dropdown konversi mata uang
+                Row(
+                  children: [
+                    const Text('Mata Uang:',
+                        style:
+                            TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: DropdownButton<String>(
+                          value: cart.selectedCurrency,
+                          isExpanded: true,
+                          underline: const SizedBox.shrink(),
+                          items: CartProvider.currencyRates.keys.map((c) {
+                            final sym = CartProvider.currencySymbols[c] ?? '';
+                            return DropdownMenuItem(
+                              value: c,
+                              child: Text('$c ($sym)',
+                                  style: const TextStyle(fontSize: 13)),
+                            );
+                          }).toList(),
+                          onChanged: (v) => v != null ? cart.setCurrency(v) : null,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Total
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Total',
+                        style:
+                            TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          idr.format(cart.subtotalIDR),
+                          style: const TextStyle(
+                            color: AppTheme.primaryOrange,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          _formatAmount(
+                            cart.convertFromIDR(cart.subtotalIDR),
+                            cart.selectedCurrency,
+                          ),
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    // Edit di Keranjang (secondary)
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.edit_outlined),
+                        label: const Text('Edit di Keranjang'),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CartScreen(),
+                            ),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          side: BorderSide(color: AppTheme.primaryOrange),
+                          foregroundColor: AppTheme.primaryOrange,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Checkout (primary)
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.payment_rounded),
+                        label: const Text('Checkout'),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            useRootNavigator: false,
+                            builder: (dialogContext) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              title: const Text('Konfirmasi Pesanan'),
+                              content: Text(
+                                'Tipe Pesanan: ${cart.orderType.name}\n'
+                                'Total: ${idr.format(cart.subtotalIDR)}\n'
+                                '(${_formatAmount(cart.convertFromIDR(cart.subtotalIDR), cart.selectedCurrency)})\n\n'
+                                'Lanjutkan checkout?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(dialogContext).pop(),
+                                  child: const Text('Batal'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    try {
+                                      final ordersProv = context
+                                          .read<OrdersProvider>();
+                                      final cartProv = context
+                                          .read<CartProvider>();
+                                      final orderId = await ordersProv
+                                          .saveFromCart(
+                                            cartProv,
+                                            status: 'Diproses',
+                                          );
+                                      cartProv.clear();
+                                      if (context.mounted) {
+                                        Navigator.of(dialogContext).pop();
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            backgroundColor:
+                                                Colors.green.shade600,
+                                            content: Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.check_circle,
+                                                  color: Colors.white,
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Text(
+                                                    'Pesanan $orderId berhasil dibuat',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            behavior: SnackBarBehavior.floating,
+                                            margin: const EdgeInsets.fromLTRB(
+                                              16,
+                                              0,
+                                              16,
+                                              16,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                        );
+                                        DefaultTabController.of(
+                                          context,
+                                        ).animateTo(1);
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        Navigator.of(dialogContext).pop();
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            backgroundColor:
+                                                Colors.red.shade600,
+                                            content: Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.error_outline,
+                                                  color: Colors.white,
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Text(
+                                                    'Gagal: ${e.toString()}',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            behavior: SnackBarBehavior.floating,
+                                            margin: const EdgeInsets.fromLTRB(
+                                              16,
+                                              0,
+                                              16,
+                                              16,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryOrange,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Text('Konfirmasi'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryOrange,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        ElevatedButton.icon(
-          onPressed: () async {
-            final orders = context.read<OrdersProvider>();
-            final id = await orders.saveFromCart(
-              cart,
-              status: 'Diproses',
-            ); // simpan ke SQLite
-            cart.clear(); // tetap sama: kosongkan cart setelah checkout
-            if (context.mounted) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Pesanan $id dibuat')));
-              DefaultTabController.of(
-                context,
-              ).animateTo(1); // pindah ke Riwayat
-            }
-          },
-          icon: const Icon(Icons.payment),
-          label: const Text('Checkout'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryOrange,
-            padding: const EdgeInsets.symmetric(vertical: 14),
           ),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CartScreen()),
-            );
-          },
-          child: const Text('Edit di Keranjang'),
         ),
       ],
     );
@@ -202,9 +590,17 @@ class _HistoryTab extends StatelessWidget {
   final NumberFormat idr;
   const _HistoryTab({required this.idr});
 
+  String _formatAmount(double amount, String currency) {
+    final sym = CartProvider.currencySymbols[currency] ?? '';
+    if (currency == 'IDR') return '$sym ${amount.toStringAsFixed(0)}';
+    if (currency == 'JPY') return '$sym${amount.toStringAsFixed(0)}';
+    return '$sym${amount.toStringAsFixed(2)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<OrdersProvider>();
+    final cart = context.watch<CartProvider>();
     final list = provider.history;
 
     if (list.isEmpty) {
@@ -230,8 +626,16 @@ class _HistoryTab extends StatelessWidget {
 
     return RefreshIndicator(
       onRefresh: provider.load,
+      // Tambahkan padding bottom agar tidak tertutup navbar
       child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          12,
+          16,
+          kBottomNavigationBarHeight +
+              MediaQuery.of(context).padding.bottom +
+              24, // dinaikkan dari 100 -> sesuai navbar
+        ),
         itemCount: list.length,
         itemBuilder: (_, i) {
           final o = list[i];
@@ -243,7 +647,7 @@ class _HistoryTab extends StatelessWidget {
             elevation: 0,
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
-              onTap: () => _showDetail(context, o),
+              onTap: () => _showDetail(context, o, cart),
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Row(
@@ -310,7 +714,6 @@ class _HistoryTab extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Icon(Icons.chevron_right),
                       ],
                     ),
                   ],
@@ -323,7 +726,7 @@ class _HistoryTab extends StatelessWidget {
     );
   }
 
-  void _showDetail(BuildContext context, OrderRecord o) {
+  void _showDetail(BuildContext context, OrderRecord o, CartProvider cart) {
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
@@ -339,6 +742,12 @@ class _HistoryTab extends StatelessWidget {
           minChildSize: 0.4,
           maxChildSize: 0.95,
           builder: (_, controller) {
+            final convertedTotal = cart.convertFromIDR(o.totalInIDR);
+            final convertedTotalText = _formatAmount(
+              convertedTotal,
+              cart.selectedCurrency,
+            );
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -380,6 +789,17 @@ class _HistoryTab extends StatelessWidget {
                     separatorBuilder: (_, __) => const Divider(height: 8),
                     itemBuilder: (_, i) {
                       final it = o.items[i];
+                      final convertedPrice = cart.convertFromIDR(it.priceInIDR);
+                      final convertedItemTotal = convertedPrice * it.quantity;
+                      final priceText = _formatAmount(
+                        convertedPrice,
+                        cart.selectedCurrency,
+                      );
+                      final itemTotalText = _formatAmount(
+                        convertedItemTotal,
+                        cart.selectedCurrency,
+                      );
+
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: ClipRRect(
@@ -402,37 +822,126 @@ class _HistoryTab extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        subtitle: Text(
-                          '${it.quantity} x ${idr.format(it.priceInIDR)}',
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${it.quantity} x ${idr.format(it.priceInIDR)}',
+                            ),
+                            Text(
+                              '(${it.quantity} x $priceText)',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
                         ),
-                        trailing: Text(
-                          idr.format(it.priceInIDR * it.quantity),
-                          style: const TextStyle(
-                            color: AppTheme.primaryOrange,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        trailing: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              idr.format(it.priceInIDR * it.quantity),
+                              style: const TextStyle(
+                                color: AppTheme.primaryOrange,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              itemTotalText,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     },
                   ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Text(
-                      'Total',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const Spacer(),
-                    Text(
-                      idr.format(o.totalInIDR),
-                      style: const TextStyle(
-                        color: AppTheme.primaryOrange,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      // Dropdown konversi mata uang
+                      Row(
+                        children: [
+                          const Text(
+                            'Mata Uang:',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: DropdownButton<String>(
+                                value: cart.selectedCurrency,
+                                isExpanded: true,
+                                underline: const SizedBox.shrink(),
+                                items: CartProvider.currencyRates.keys.map((c) {
+                                  final sym =
+                                      CartProvider.currencySymbols[c] ?? '';
+                                  return DropdownMenuItem(
+                                    value: c,
+                                    child: Text('$c ($sym)'),
+                                  );
+                                }).toList(),
+                                onChanged: (v) =>
+                                    v != null ? cart.setCurrency(v) : null,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      // Total dengan konversi
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Total',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                idr.format(o.totalInIDR),
+                                style: const TextStyle(
+                                  color: AppTheme.primaryOrange,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                convertedTotalText,
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             );

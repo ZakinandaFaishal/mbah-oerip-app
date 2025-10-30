@@ -3,7 +3,23 @@ import '../../theme.dart';
 
 class HomeSearchBar extends StatelessWidget {
   final VoidCallback onDirectionTap;
-  const HomeSearchBar({super.key, required this.onDirectionTap});
+  final TextEditingController controller;
+  final String query;
+  final String hintText;
+  final ValueChanged<String> onChanged;
+  final ValueChanged<String> onSubmitted;
+  final VoidCallback onClear;
+
+  const HomeSearchBar({
+    super.key,
+    required this.onDirectionTap,
+    required this.controller,
+    required this.query,
+    this.hintText = 'Cari menu...',
+    required this.onChanged,
+    required this.onSubmitted,
+    required this.onClear,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -11,10 +27,18 @@ class HomeSearchBar extends StatelessWidget {
       children: [
         Expanded(
           child: TextField(
-            readOnly: true,
+            controller: controller,
+            textInputAction: TextInputAction.search,
             decoration: InputDecoration(
-              hintText: 'Cari menu favorit…',
+              hintText: hintText,
               prefixIcon: const Icon(Icons.search),
+              suffixIcon: query.isNotEmpty
+                  ? IconButton(
+                      tooltip: 'Bersihkan',
+                      icon: const Icon(Icons.close),
+                      onPressed: onClear,
+                    )
+                  : null,
               filled: true,
               fillColor: Colors.grey.shade100,
               border: OutlineInputBorder(
@@ -26,9 +50,8 @@ class HomeSearchBar extends StatelessWidget {
                 horizontal: 12,
               ),
             ),
-            onTap: () {
-              // Navigator.push(context, MaterialPageRoute(builder: (_) => const MenuScreen()));
-            },
+            onChanged: onChanged,
+            onSubmitted: onSubmitted,
           ),
         ),
         const SizedBox(width: 12),

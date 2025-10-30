@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
+import 'dart:async';
 
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
@@ -12,6 +13,7 @@ import '../models/menu_item.dart';
 import '../theme.dart';
 import 'cart_screen.dart';
 import 'menu_detail_screen.dart';
+import 'menu_screen.dart';
 
 import '../widgets/home/home_search_bar.dart';
 import '../widgets/home/opening_hours_card.dart';
@@ -33,6 +35,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   late Future<List<MenuItem>> _popularFuture;
 
+  // Search di Home (mirip MenuScreen)
+  final TextEditingController _homeSearchCtrl = TextEditingController();
+  Timer? _homeSearchDebounce;
+  static const Duration _searchDelay = Duration(milliseconds: 500);
+  String _homeSearchQuery = '';
+
   final List<Map<String, String>> _banners = const [
     {
       'image':
@@ -50,7 +58,13 @@ class _HomeScreenState extends State<HomeScreen> {
       'image':
           'https://www.pesonaborobudur.com/assets/upload/galeri/Ingkung_Bebek.jpg',
       'title': 'Gratis Ongkir',
-      'subtitle': 'Khusus hari ini',
+      'subtitle': 'Untuk area tertentu 0-5 km',
+    },
+    {
+      'image':
+          'https://lh3.googleusercontent.com/gps-cs-s/AG0ilSzdAI_Iu8tmlg22T5ItelnRmdR3ncK94d8xs-CMuLPWvqGbNMrJx-57d7mMdXreBp2Kyfn_3oBC-93PdomzQ_Wpb66HqEJWjPegLa1IiA0A_F9uRPA0iytqCRSrecr4CmG5MV_umw=s680-w680-h510-rw',
+      'title': 'Spesial Oktober Ceria',
+      'subtitle': 'Potongan hingga 30%',
     },
   ];
 
@@ -59,6 +73,31 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     tzdata.initializeTimeZones();
     _popularFuture = _api.fetchAllMenuItems();
+  }
+
+  @override
+  void dispose() {
+    _homeSearchCtrl.dispose();
+    _homeSearchDebounce?.cancel();
+    super.dispose();
+  }
+
+  void _onHomeSearchChanged(String value) {
+    _homeSearchDebounce?.cancel();
+    _homeSearchDebounce = Timer(_searchDelay, () {
+      if (!mounted) return;
+      setState(() => _homeSearchQuery = value);
+    });
+  }
+
+  List<MenuItem> _filterByQuery(List<MenuItem> items, String q) {
+    if (q.trim().isEmpty) return const [];
+    final s = q.toLowerCase();
+    return items.where((it) {
+      final name = it.name.toLowerCase();
+      final desc = (it.description ?? '').toLowerCase();
+      return name.contains(s) || desc.contains(s);
+    }).toList();
   }
 
   Map<String, int> _todayHours() {
@@ -114,6 +153,50 @@ class _HomeScreenState extends State<HomeScreen> {
     final loc = tz.getLocation('Asia/Jakarta');
     final now = tz.TZDateTime.now(loc);
     return days[now.weekday - 1];
+  }
+
+  // Helper: tampilkan snackbar modern
+  void _showModernSnackBar({
+    required String message,
+    required IconData icon,
+    required Color color,
+    String? actionLabel,
+    VoidCallback? onAction,
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16), // ganti 80 -> 16
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 8,
+        duration: duration,
+        action: actionLabel != null
+            ? SnackBarAction(
+                label: actionLabel,
+                textColor: Colors.white,
+                onPressed: onAction ?? () {},
+              )
+            : null,
+      ),
+    );
   }
 
   @override
@@ -201,15 +284,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 80, 16, 0),
                 color: Colors.white,
                 child: HomeSearchBar(
-                  onDirectionTap: () {
-                    _locationService.openDirectionsInGoogleMaps(context);
+                  onDirectionTap: () =>
+                      _locationService.openDirectionsInGoogleMaps(context),
+                  controller: _homeSearchCtrl,
+                  query: _homeSearchQuery,
+                  onChanged: _onHomeSearchChanged,
+                  onSubmitted: (v) {
+                    _homeSearchDebounce?.cancel();
+                    setState(() => _homeSearchQuery = v);
+                  },
+                  onClear: () {
+                    _homeSearchCtrl.clear();
+                    _homeSearchDebounce?.cancel();
+                    setState(() => _homeSearchQuery = '');
                   },
                 ),
               ),
             ),
           ),
 
-          // Card jam buka (panel reservasi sudah terintegrasi di dalam OpeningHoursCard)
+          // Card jam buka (panel reservasi terintegrasi)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -222,126 +316,273 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SectionTitle(title: 'Promo Spesial'),
-                  const SizedBox(height: 12),
-                  PromoCarousel(banners: _banners),
-                ],
-              ),
-            ),
-          ),
-
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SectionTitle(title: 'Spesial Hari Ini'),
-                  const SizedBox(height: 12),
-                  FutureBuilder<List<MenuItem>>(
-                    future: _popularFuture,
-                    builder: (context, snap) {
-                      if (snap.connectionState == ConnectionState.waiting) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 24),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      }
-                      if (snap.hasError) {
-                        return Center(
-                          child: Text('Gagal memuat menu: ${snap.error}'),
-                        );
-                      }
-                      final items = (snap.data ?? []).take(6).toList();
-                      if (items.isEmpty) {
-                        return const Center(child: Text('Belum ada menu'));
-                      }
-                      final idr = NumberFormat.currency(
-                        locale: 'id_ID',
-                        symbol: 'Rp ',
-                        decimalDigits: 0,
+          // Hasil Pencarian (muncul hanya jika ada query)
+          if (_homeSearchQuery.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: FutureBuilder<List<MenuItem>>(
+                  future: _popularFuture,
+                  builder: (context, snap) {
+                    if (snap.connectionState == ConnectionState.waiting) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: CircularProgressIndicator(),
+                        ),
                       );
-                      return GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              childAspectRatio: .72,
+                    }
+                    if (snap.hasError) {
+                      return Text('Gagal memuat hasil: ${snap.error}');
+                    }
+
+                    final all = snap.data ?? [];
+                    final filtered = _filterByQuery(all, _homeSearchQuery);
+                    final idr = NumberFormat.currency(
+                      locale: 'id_ID',
+                      symbol: 'Rp ',
+                      decimalDigits: 0,
+                    );
+
+                    if (filtered.isEmpty) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Hasil Pencarian',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
-                        itemCount: items.length,
-                        itemBuilder: (_, i) {
-                          final it = items[i];
-                          return HomeMenuCard(
-                            title: it.name,
-                            categoryName: it.category?.name ?? '',
-                            priceText: idr.format(it.price),
-                            imageUrl: it.imageUrl,
-                            onTap: () {
+                          ),
+                          const SizedBox(height: 8),
+                          Text('Tidak ada menu untuk "${_homeSearchQuery}".'),
+                        ],
+                      );
+                    }
+
+                    final items = filtered.take(8).toList();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Hasil Pencarian',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: .72,
+                              ),
+                          itemCount: items.length,
+                          itemBuilder: (_, i) {
+                            final it = items[i];
+                            return HomeMenuCard(
+                              title: it.name,
+                              categoryName: it.category?.name ?? '',
+                              priceText: idr.format(it.price),
+                              imageUrl: it.imageUrl,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => MenuDetailScreen(
+                                      item: it,
+                                      categoryName: it.category?.name ?? 'Menu',
+                                    ),
+                                  ),
+                                );
+                              },
+                              onAddCart: () {
+                                context.read<CartProvider>().addItem(
+                                  id: it.id,
+                                  name: it.name,
+                                  imageUrl: it.imageUrl,
+                                  priceInIDR: it.price,
+                                  quantity: 1,
+                                );
+                                // Snackbar modern: item ditambah
+                                _showModernSnackBar(
+                                  message:
+                                      '${it.name} ditambahkan ke keranjang',
+                                  icon: Icons.check_circle,
+                                  color: Colors.green.shade600,
+                                  actionLabel: 'Lihat',
+                                  onAction: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const CartScreen(),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 4),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            child: const Text('Lihat semua di Menu'),
+                            onPressed: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => MenuDetailScreen(
-                                    item: it,
-                                    categoryName: it.category?.name ?? 'Menu',
-                                  ),
+                                  builder: (_) => const MenuScreen(),
                                 ),
                               );
                             },
-                            onAddCart: () {
-                              context.read<CartProvider>().addItem(
-                                id: it.id,
-                                name: it.name,
-                                imageUrl: it.imageUrl,
-                                priceInIDR: it.price,
-                                quantity: 1,
-                              );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text(
-                                    'Ditambahkan ke keranjang',
-                                  ),
-                                  duration: const Duration(milliseconds: 800),
-                                  action: SnackBarAction(
-                                    label: 'Buka',
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => const CartScreen(),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
-          ),
 
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
-              child: const VoucherBanner(),
+          // Jika tidak mencari, tampilkan konten normal
+          if (_homeSearchQuery.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SectionTitle(title: 'Promo Spesial'),
+                    const SizedBox(height: 12),
+                    PromoCarousel(banners: _banners),
+                  ],
+                ),
+              ),
             ),
-          ),
+
+          if (_homeSearchQuery.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SectionTitle(title: 'Spesial Hari Ini'),
+                    const SizedBox(height: 12),
+                    FutureBuilder<List<MenuItem>>(
+                      future: _popularFuture,
+                      builder: (context, snap) {
+                        if (snap.connectionState == ConnectionState.waiting) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+                        if (snap.hasError) {
+                          return Center(
+                            child: Text('Gagal memuat menu: ${snap.error}'),
+                          );
+                        }
+                        final items = (snap.data ?? []).take(6).toList();
+                        if (items.isEmpty) {
+                          return const Center(child: Text('Belum ada menu'));
+                        }
+                        final idr = NumberFormat.currency(
+                          locale: 'id_ID',
+                          symbol: 'Rp ',
+                          decimalDigits: 0,
+                        );
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: .72,
+                              ),
+                          itemCount: items.length,
+                          itemBuilder: (_, i) {
+                            final it = items[i];
+                            return HomeMenuCard(
+                              title: it.name,
+                              categoryName: it.category?.name ?? '',
+                              priceText: idr.format(it.price),
+                              imageUrl: it.imageUrl,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => MenuDetailScreen(
+                                      item: it,
+                                      categoryName: it.category?.name ?? 'Menu',
+                                    ),
+                                  ),
+                                );
+                              },
+                              onAddCart: () {
+                                context.read<CartProvider>().addItem(
+                                  id: it.id,
+                                  name: it.name,
+                                  imageUrl: it.imageUrl,
+                                  priceInIDR: it.price,
+                                  quantity: 1,
+                                );
+                                // Snackbar modern: item ditambah
+                                _showModernSnackBar(
+                                  message:
+                                      '${it.name} ditambahkan ke keranjang',
+                                  icon: Icons.check_circle,
+                                  color: Colors.green.shade600,
+                                  actionLabel: 'Lihat',
+                                  onAction: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const CartScreen(),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          if (_homeSearchQuery.isEmpty)
+            SliverPadding(
+              padding: EdgeInsets.only(
+                // ruang ekstra = tinggi nav bar + safe area + margin kecil
+                bottom:
+                    kBottomNavigationBarHeight +
+                    MediaQuery.of(context).padding.bottom +
+                    12, // sedikit lebih kecil
+              ),
+              sliver: SliverToBoxAdapter(
+                child: Padding(
+                  // kurangi jarak atas dari 24 -> 8 agar lebih rapat
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: const VoucherBanner(),
+                ),
+              ),
+            ),
         ],
       ),
     );

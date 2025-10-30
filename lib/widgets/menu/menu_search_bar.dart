@@ -7,6 +7,7 @@ class MenuSearchBar extends StatelessWidget {
   final ValueChanged<String> onChanged;
   final ValueChanged<String> onSubmitted;
   final VoidCallback onClear;
+  final bool autofocus;
 
   const MenuSearchBar({
     super.key,
@@ -16,14 +17,14 @@ class MenuSearchBar extends StatelessWidget {
     required this.onChanged,
     required this.onSubmitted,
     required this.onClear,
+    this.autofocus = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
-      onChanged: onChanged,
-      onSubmitted: onSubmitted,
+      autofocus: autofocus,
       decoration: InputDecoration(
         hintText: hintText,
         prefixIcon: const Icon(Icons.search, color: Colors.grey),
@@ -38,6 +39,8 @@ class MenuSearchBar extends StatelessWidget {
         ),
         contentPadding: const EdgeInsets.symmetric(vertical: 0),
       ),
+      onChanged: onChanged,
+      onSubmitted: onSubmitted,
     );
   }
 }
