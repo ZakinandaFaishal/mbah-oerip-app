@@ -1,27 +1,30 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:ingkung_mbah_oerip/screens/main_screen.dart';
+import 'package:ingkung_mbah_oerip/providers/cart_provider.dart';
+import 'package:ingkung_mbah_oerip/providers/orders_provider.dart';
+import 'package:ingkung_mbah_oerip/screens/splash_screen.dart';
+import 'package:ingkung_mbah_oerip/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'providers/auth_provider.dart';
-import 'providers/cart_provider.dart';
-import 'theme.dart';
-import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  await initializeDateFormatting('id_ID', null);
   await Hive.initFlutter();
-  // BUKA box yang dipakai AuthProvider
+
+  // Buka semua box yang akan digunakan di sini
   await Hive.openBox('users');
   await Hive.openBox('session');
 
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()), // tanpa argumen
+        // AuthProvider sekarang aman untuk diinisialisasi
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => OrdersProvider()),
       ],
       child: const MyApp(),
     ),
@@ -30,12 +33,14 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
+      title: 'Ingkung Mbah Oerip',
       theme: AppTheme.lightTheme,
-      home: const MainScreen(),
+      debugShowCheckedModeBanner: false,
+      home: const SplashScreen(),
     );
   }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -13,6 +12,13 @@ import '../models/menu_item.dart';
 import '../theme.dart';
 import 'cart_screen.dart';
 import 'menu_detail_screen.dart';
+
+import '../widgets/home/home_search_bar.dart';
+import '../widgets/home/opening_hours_card.dart';
+import '../widgets/home/promo_carousel.dart';
+import '../widgets/home/home_menu_card.dart';
+import '../widgets/home/section_title.dart';
+import '../widgets/home/voucher_banner.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,7 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final ApiService _api = ApiService();
 
   late Future<List<MenuItem>> _popularFuture;
-  int _currentBanner = 0;
 
   final List<Map<String, String>> _banners = const [
     {
@@ -37,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
     },
     {
       'image':
-          'https://images.unsplash.com/photo-1604909052743-86e84eaf9a1c?q=80&w=1600&auto=format&fit=crop',
+          'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?q=80&w=1600&auto=format&fit=crop',
       'title': 'Beli 2 Gratis 1',
       'subtitle': 'Menu pilihan spesial',
     },
@@ -53,24 +58,21 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     tzdata.initializeTimeZones();
-    _popularFuture = _api
-        .fetchAllMenuItems(); // ambil semua, nanti ambil 6 teratas
+    _popularFuture = _api.fetchAllMenuItems();
   }
 
-  // Jam operasional dinamis per hari
   Map<String, int> _todayHours() {
     final loc = tz.getLocation('Asia/Jakarta');
     final now = tz.TZDateTime.now(loc);
 
-    // Contoh jadwal (bisa ubah per hari)
     final schedule = <int, Map<String, int>>{
-      1: {'open': 10, 'close': 21}, // Senin
+      1: {'open': 10, 'close': 21},
       2: {'open': 10, 'close': 21},
       3: {'open': 10, 'close': 21},
       4: {'open': 10, 'close': 21},
-      5: {'open': 10, 'close': 22}, // Jumat
-      6: {'open': 9, 'close': 22}, // Sabtu
-      7: {'open': 9, 'close': 21}, // Minggu
+      5: {'open': 10, 'close': 22},
+      6: {'open': 9, 'close': 22},
+      7: {'open': 9, 'close': 21},
     };
 
     return schedule[now.weekday] ?? {'open': 10, 'close': 21};
@@ -198,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
               background: Container(
                 padding: const EdgeInsets.fromLTRB(16, 80, 16, 0),
                 color: Colors.white,
-                child: _SearchBar(
+                child: HomeSearchBar(
                   onDirectionTap: () {
                     _locationService.openDirectionsInGoogleMaps(context);
                   },
@@ -207,11 +209,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Jam operasional
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: _OpeningHoursCard(
+              child: OpeningHoursCard(
                 isOpen: _isOpenNow(),
                 dayLabel: _todayLabel(),
                 openHour: _todayHours()['open']!,
@@ -220,74 +221,27 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Carousel Promo
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SectionTitle(title: 'Promo Spesial'),
+                  const SectionTitle(title: 'Promo Spesial'),
                   const SizedBox(height: 12),
-                  _banners.isEmpty
-                      ? Container(
-                          height: 180,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text('Tidak ada promo'),
-                        )
-                      : CarouselSlider(
-                          options: CarouselOptions(
-                            height: 180,
-                            autoPlay: true,
-                            enlargeCenterPage: true,
-                            viewportFraction: .9,
-                            onPageChanged: (i, _) =>
-                                setState(() => _currentBanner = i),
-                          ),
-                          items: _banners.map((b) {
-                            return _PromoCard(
-                              imageUrl: b['image']!,
-                              title: b['title']!,
-                              subtitle: b['subtitle']!,
-                            );
-                          }).toList(),
-                        ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(_banners.length, (i) {
-                      final active = _currentBanner == i;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: active ? 18 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: active
-                              ? AppTheme.primaryOrange
-                              : Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      );
-                    }),
-                  ),
+                  PromoCarousel(banners: _banners),
                 ],
               ),
             ),
           ),
 
-          // Menu populer / spesial hari ini
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SectionTitle(title: 'Spesial Hari Ini'),
+                  const SectionTitle(title: 'Spesial Hari Ini'),
                   const SizedBox(height: 12),
                   FutureBuilder<List<MenuItem>>(
                     future: _popularFuture,
@@ -327,11 +281,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemCount: items.length,
                         itemBuilder: (_, i) {
                           final it = items[i];
-                          return _MenuCard(
+                          return HomeMenuCard(
                             title: it.name,
-                            categoryName:
-                                it.category?.name ??
-                                '', // Tambahan: tampilkan kategori
+                            categoryName: it.category?.name ?? '',
                             priceText: idr.format(it.price),
                             imageUrl: it.imageUrl,
                             onTap: () {
@@ -383,437 +335,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Banner voucher
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
-              child: _VoucherBanner(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SearchBar extends StatelessWidget {
-  final VoidCallback onDirectionTap;
-  const _SearchBar({required this.onDirectionTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            readOnly: true,
-            decoration: InputDecoration(
-              hintText: 'Cari menu favorit…',
-              prefixIcon: const Icon(Icons.search),
-              filled: true,
-              fillColor: Colors.grey.shade100,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 0,
-                horizontal: 12,
-              ),
-            ),
-            onTap: () {
-              // Arahkan ke halaman Menu jika ingin
-              // Navigator.push(context, MaterialPageRoute(builder: (_) => const MenuScreen()));
-            },
-          ),
-        ),
-        const SizedBox(width: 12),
-        InkWell(
-          onTap: onDirectionTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            height: 48,
-            width: 48,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryOrange,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.directions, color: Colors.white),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _OpeningHoursCard extends StatelessWidget {
-  final bool isOpen;
-  final String dayLabel;
-  final int openHour;
-  final int closeHour;
-
-  const _OpeningHoursCard({
-    required this.isOpen,
-    required this.dayLabel,
-    required this.openHour,
-    required this.closeHour,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final statusColor = isOpen ? Colors.green : Colors.red;
-    final now = DateFormat('HH:mm').format(DateTime.now());
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      clipBehavior: Clip.antiAlias,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.orange.shade50, Colors.orange.shade100],
-          ),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                isOpen ? Icons.access_time_filled : Icons.lock_clock,
-                color: statusColor,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Jam Buka $dayLabel',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${openHour.toString().padLeft(2, '0')}:00 - ${closeHour.toString().padLeft(2, '0')}:00 WIB',
-                    style: TextStyle(color: Colors.grey.shade700),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Sekarang: $now WIB',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                isOpen ? 'Buka' : 'Tutup',
-                style: TextStyle(
-                  color: statusColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PromoCard extends StatelessWidget {
-  final String imageUrl;
-  final String title;
-  final String subtitle;
-
-  const _PromoCard({
-    required this.imageUrl,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.network(imageUrl, fit: BoxFit.cover),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.black.withOpacity(.55), Colors.transparent],
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 16,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(color: Colors.white.withOpacity(.9)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MenuCard extends StatefulWidget {
-  final String imageUrl;
-  final String title;
-  final String priceText;
-  final String? categoryName; // Tambahan: kategori
-  final VoidCallback onTap;
-  final VoidCallback? onAddCart;
-
-  const _MenuCard({
-    required this.imageUrl,
-    required this.title,
-    required this.priceText,
-    required this.onTap,
-    this.categoryName, // Tambahan
-    this.onAddCart,
-  });
-
-  @override
-  State<_MenuCard> createState() => _MenuCardState();
-}
-
-class _MenuCardState extends State<_MenuCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _scaleAnim = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ScaleTransition(
-      scale: _scaleAnim,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: Card(
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image
-              Expanded(
-                child: Container(
-                  color: Colors.grey.shade100,
-                  child: Image.network(
-                    widget.imageUrl,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    errorBuilder: (_, __, ___) => Center(
-                      child: Icon(
-                        Icons.broken_image,
-                        color: Colors.grey.shade400,
-                        size: 48,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              // Info
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                    if ((widget.categoryName ?? '').isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.categoryName!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          widget.priceText,
-                          style: const TextStyle(
-                            color: AppTheme.primaryOrange,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                        if (widget.onAddCart != null)
-                          GestureDetector(
-                            onTap: widget.onAddCart,
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: AppTheme.primaryOrange.withOpacity(.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.add,
-                                size: 16,
-                                color: AppTheme.primaryOrange,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  const _SectionTitle({required this.title});
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-    );
-  }
-}
-
-class _VoucherBanner extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: Stack(
-        children: [
-          // Background image
-          Image.network(
-            'https://images.unsplash.com/photo-1556745753-b2904692b3cd?q=80&w=1600&auto=format&fit=crop',
-            height: 120,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
-          // Overlay
-          Container(
-            height: 120,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.black.withOpacity(.6), Colors.transparent],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-            ),
-          ),
-          // Text
-          Positioned.fill(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.confirmation_number,
-                    color: Colors.white,
-                    size: 32,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          'Gunakan Voucher',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Potongan hingga 30% untuk menu favoritmu',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppTheme.primaryOrange,
-                    ),
-                    onPressed: () {},
-                    child: const Text('Pakai'),
-                  ),
-                ],
-              ),
+              child: const VoucherBanner(),
             ),
           ),
         ],

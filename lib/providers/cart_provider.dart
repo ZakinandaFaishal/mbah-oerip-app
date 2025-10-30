@@ -18,9 +18,38 @@ class CartItem {
 
 enum OrderType { dineIn, delivery, pickup }
 
+enum OrderStatus { pending, preparing, ready, completed, cancelled }
+
+class Order {
+  final String orderId;
+  final List<CartItem> items;
+  final OrderType orderType;
+  final String? deliveryAddress;
+  final int totalIDR;
+  final String currency;
+  final double convertedTotal;
+  final DateTime createdAt;
+  OrderStatus status;
+
+  Order({
+    required this.orderId,
+    required this.items,
+    required this.orderType,
+    this.deliveryAddress,
+    required this.totalIDR,
+    required this.currency,
+    required this.convertedTotal,
+    required this.createdAt,
+    this.status = OrderStatus.pending,
+  });
+}
+
 class CartProvider extends ChangeNotifier {
   final List<CartItem> _items = [];
   List<CartItem> get items => List.unmodifiable(_items);
+
+  final List<Order> _orders = [];
+  List<Order> get orders => List.unmodifiable(_orders);
 
   // State pemesanan
   OrderType _orderType = OrderType.dineIn;
@@ -45,7 +74,7 @@ class CartProvider extends ChangeNotifier {
     'GBP': 0.000051,
     'SAR': 0.000240,
   };
-
+  
   static const Map<String, String> currencySymbols = {
     'IDR': 'Rp',
     'USD': r'$',
@@ -130,5 +159,49 @@ class CartProvider extends ChangeNotifier {
       _selectedCurrency = currency;
       notifyListeners();
     }
+  }
+
+  // Checkout - pindahkan cart ke orders
+  void checkout() {
+    if (_items.isEmpty) return;
+
+    final order = Order(
+      orderId: 'ORD-${DateTime.now().millisecondsSinceEpoch}',
+      items: _items
+          .map(
+            (e) => CartItem(
+              id: e.id,
+              name: e.name,
+              imageUrl: e.imageUrl,
+              priceInIDR: e.priceInIDR,
+              quantity: e.quantity,
+            ),
+          )
+          .toList(),
+      orderType: _orderType,
+      deliveryAddress: _deliveryAddress,
+      totalIDR: subtotalIDR,
+      currency: _selectedCurrency,
+      convertedTotal: convertFromIDR(subtotalIDR),
+      createdAt: DateTime.now(),
+    );
+
+    _orders.insert(0, order); // tambah di awal (terbaru di atas)
+    clear();
+    notifyListeners();
+  }
+
+  // Update status pesanan
+  void updateOrderStatus(String orderId, OrderStatus newStatus) {
+    final idx = _orders.indexWhere((o) => o.orderId == orderId);
+    if (idx != -1) {
+      _orders[idx].status = newStatus;
+      notifyListeners();
+    }
+  }
+
+  // Cancel order
+  void cancelOrder(String orderId) {
+    updateOrderStatus(orderId, OrderStatus.cancelled);
   }
 }

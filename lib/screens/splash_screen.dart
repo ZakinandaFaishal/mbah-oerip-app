@@ -64,6 +64,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _animateSequence();
 
+    // Panggil navigasi setelah frame pertama selesai
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkLoginAndNavigate();
     });
@@ -85,12 +86,15 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkLoginAndNavigate() async {
+    // Beri jeda agar animasi splash screen terlihat
     await Future.delayed(const Duration(seconds: 4));
 
+    if (!mounted) return; // Pastikan widget masih ada di tree
+
+    // Baca status login dari provider
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    if (!mounted) return;
-
+    // Lakukan navigasi berdasarkan status login
     if (authProvider.isLoggedIn) {
       Navigator.of(
         context,

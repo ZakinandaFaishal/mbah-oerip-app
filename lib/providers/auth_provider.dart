@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
 class AuthProvider extends ChangeNotifier {
+  // Box sudah dibuka di main.dart, jadi ini aman
   final Box _userBox = Hive.box('users');
   final Box _sessionBox = Hive.box('session');
 
@@ -13,10 +14,12 @@ class AuthProvider extends ChangeNotifier {
   String? _loggedInUser;
   String? get loggedInUser => _loggedInUser;
 
+  // Konstruktor akan langsung memeriksa status login saat provider dibuat
   AuthProvider() {
     _checkLoginStatus();
   }
 
+  // Metode ini memeriksa sesi yang tersimpan
   void _checkLoginStatus() {
     _loggedInUser = _sessionBox.get('currentUser');
     if (_loggedInUser != null && _userBox.containsKey(_loggedInUser)) {
@@ -24,7 +27,8 @@ class AuthProvider extends ChangeNotifier {
     } else {
       _isLoggedIn = false;
     }
-    notifyListeners();
+    // Tidak perlu notifyListeners() di sini karena ini terjadi di konstruktor
+    // sebelum widget lain mendengarkan.
   }
 
   String _hashPassword(String password) {
@@ -39,10 +43,10 @@ class AuthProvider extends ChangeNotifier {
     String fullName,
   ) async {
     if (_userBox.containsKey(username)) {
-      return false;
+      return false; // Username sudah ada
     }
     final hashedPassword = _hashPassword(password);
-    _userBox.put(username, {
+    await _userBox.put(username, {
       'passwordHash': hashedPassword,
       'fullName': fullName,
       'profilePic': null,
@@ -52,7 +56,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<bool> login(String username, String password) async {
     if (!_userBox.containsKey(username)) {
-      return false;
+      return false; // User tidak ditemukan
     }
 
     final userData = _userBox.get(username);
@@ -62,23 +66,18 @@ class AuthProvider extends ChangeNotifier {
     if (storedHash == inputHash) {
       _isLoggedIn = true;
       _loggedInUser = username;
-      _sessionBox.put('currentUser', username);
+      await _sessionBox.put('currentUser', username); // Simpan sesi
       notifyListeners();
       return true;
     }
     return false;
   }
 
-  // Tambahkan atau perbarui method logout agar async
   Future<void> logout() async {
-    try {
-      // bersihkan data sesi (sesuaikan key jika Anda menyimpan spesifik)
-      await _sessionBox.clear();
-    } finally {
-      _isLoggedIn = false;
-      _loggedInUser = null;
-      notifyListeners();
-    }
+    await _sessionBox.clear(); // Hapus sesi
+    _isLoggedIn = false;
+    _loggedInUser = null;
+    notifyListeners();
   }
 
   Map<dynamic, dynamic>? get currentUserData {

@@ -7,10 +7,8 @@ import 'package:geocoding/geocoding.dart' as geo;
 class LocationService {
   final loc.Location _location = loc.Location();
 
-  final double _restoLat = -7.633917;
-  final double _restoLng = 110.334053;
 
-  // Diperbaiki: method publik untuk dipanggil dari CartScreen
+  // method publik untuk dipanggil dari CartScreen
   Future<loc.LocationData?> getCurrentLocation(BuildContext context) async {
     bool serviceEnabled = await _location.serviceEnabled();
     if (!serviceEnabled) {
@@ -40,7 +38,7 @@ class LocationService {
     }
   }
 
-  // Diperbaiki: method publik untuk konversi koordinat ke alamat
+  // method publik untuk konversi koordinat ke alamat
   Future<String?> getAddressFromCoordinates(
     double latitude,
     double longitude,
@@ -68,11 +66,6 @@ class LocationService {
       debugPrint('LBS: geocoding error: $e');
       return null;
     }
-  }
-
-  // Opsional
-  Future<loc.LocationData?> _getCurrentLocation(BuildContext context) async {
-    return getCurrentLocation(context);
   }
 
   Future<void> openDirectionsInGoogleMaps(BuildContext context) async {
