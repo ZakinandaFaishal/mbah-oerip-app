@@ -66,16 +66,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final now = tz.TZDateTime.now(loc);
 
     final schedule = <int, Map<String, int>>{
-      1: {'open': 10, 'close': 21},
-      2: {'open': 10, 'close': 21},
-      3: {'open': 10, 'close': 21},
-      4: {'open': 10, 'close': 21},
-      5: {'open': 10, 'close': 22},
-      6: {'open': 9, 'close': 22},
-      7: {'open': 9, 'close': 21},
+      1: {'open': 8, 'close': 21},
+      2: {'open': 8, 'close': 21},
+      3: {'open': 8, 'close': 21},
+      4: {'open': 8, 'close': 21},
+      5: {'open': 8, 'close': 22},
+      6: {'open': 6, 'close': 22},
+      7: {'open': 6, 'close': 22},
     };
 
-    return schedule[now.weekday] ?? {'open': 10, 'close': 21};
+    return schedule[now.weekday] ?? {'open': 8, 'close': 21};
   }
 
   bool _isOpenNow() {
@@ -209,6 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
+          // Card jam buka (panel reservasi sudah terintegrasi di dalam OpeningHoursCard)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
