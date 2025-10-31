@@ -8,7 +8,8 @@ import '../widgets/main/custom_bottom_nav_bar.dart';
 import '../widgets/main/fab_home_button.dart';
 
 class MainScreen extends StatefulWidget {
-  final int initialIndex; // tab awal: 0=Home, 1=Menu, 2=Pesanan, 3=Voucher, 4=Profile
+  final int
+  initialIndex; // tab awal: 0=Home, 1=Menu, 2=Pesanan, 3=Voucher, 4=Profile
   const MainScreen({super.key, this.initialIndex = 0});
 
   @override
@@ -39,18 +40,22 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true, // biar konten di bawah BottomAppBar transparan
+      extendBody: true,
       resizeToAvoidBottomInset:
-          false, // <-- tambahkan: FAB & bottom bar tidak ikut naik saat keyboard muncul
-      body: IndexedStack(index: _selectedIndex, children: [
-        const HomeScreen(),
-        const MenuScreen(),
-        const OrdersScreen(),
-        const VouchersScreen(),
-        const ProfileScreen(),
-      ]),
+          false,
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          const HomeScreen(),
+          const MenuScreen(),
+          const OrdersScreen(),
+          const VouchersScreen(),
+          const ProfileScreen(),
+        ],
+      ),
       bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: _selectedIndex == 0 ? 0 : _selectedIndex - 1,
+        // Jika Home (0), set ke -1 agar semua menu non-aktif
+        currentIndex: _selectedIndex == 0 ? -1 : _selectedIndex - 1,
         onTap: _onItemTapped,
       ),
       floatingActionButton: FABHomeButton(

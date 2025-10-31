@@ -2,20 +2,18 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   // Palet utama: coklat dan emas
-  static const Color primaryOrange = Color(
-    0xFF5D4037,
-  ); // Rich Brown (dipakai sbg "primary")
-  static const Color accentOrange = Color(0xFFD4AF37); // Gold (aksen)
-  static const Color primaryRed = Color(0xFFD32F2F);
+  static const Color primaryOrange = Color(0xFF5D4037); // Rich Brown (dipakai sbg "primary")
+  static const Color accentOrange  = Color(0xFFD4AF37); // Gold (aksen)
+  static const Color primaryRed    = Color(0xFFD32F2F);
 
   // Dasar
   static const Color backgroundWhite = Color(0xFFF6F4EF); // Warm ivory
-  static const Color textColor = Color(0xFF2E2A27); // Dark coffee
+  static const Color textColor = Color(0xFF2E2A27);       // Dark coffee
 
   // Variasi pendukung
-  static const Color darkBrown = Color(0xFF3E2723);
-  static const Color goldLight = Color(0xFFEAD18A);
-  static const Color goldPale = Color(0xFFFFF4D6);
+  static const Color darkBrown  = Color(0xFF3E2723);
+  static const Color goldLight  = Color(0xFFEAD18A);
+  static const Color goldPale   = Color(0xFFFFF4D6);
 
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
@@ -100,10 +98,10 @@ class AppTheme {
 
   // Gradient opsional bernuansa coklat → emas
   static LinearGradient get splashGradient => const LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [darkBrown, accentOrange, goldPale],
-  );
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [darkBrown, accentOrange, goldPale],
+      );
 
   // Teks utilitas
   static const TextStyle headingStyle = TextStyle(
@@ -112,7 +110,10 @@ class AppTheme {
     color: primaryOrange,
   );
 
-  static const TextStyle bodyStyle = TextStyle(fontSize: 14, color: textColor);
+  static const TextStyle bodyStyle = TextStyle(
+    fontSize: 14,
+    color: textColor,
+  );
 
   static const TextStyle smallTextStyle = TextStyle(
     fontSize: 12,

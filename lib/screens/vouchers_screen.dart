@@ -55,7 +55,7 @@ class VouchersScreen extends StatelessWidget {
             subtitle: 'Gratis ongkir hingga Rp 10.000 untuk area tertentu',
             imageUrl:
                 'https://bigseller-1251220924.cos.accelerate.myqcloud.com/static/faq/2025/1740015181066427.jpg',
-            buttonLabel: 'Gunakan',
+            buttonLabel: 'Pakai',
             onTap: () => _toast(context, 'Gratis ongkir diaktifkan'),
           ),
           const SizedBox(height: 12),
