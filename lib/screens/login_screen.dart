@@ -4,6 +4,9 @@ import '../providers/auth_provider.dart';
 import 'main_screen.dart';
 import '../theme.dart';
 import '../utils/password_hasher.dart';
+import '../widgets/auth/logo_header.dart';
+import '../widgets/auth/login_form.dart';
+import '../widgets/auth/auth_toggle_text.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _submit() async {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
 
@@ -44,12 +47,12 @@ class _LoginScreenState extends State<LoginScreen> {
       if (_isLogin) {
         success = await authProvider.login(
           _usernameController.text.trim(),
-          hashed, // kirim password yang sudah di-hash
+          hashed,
         );
       } else {
         success = await authProvider.register(
           _usernameController.text.trim(),
-          hashed, // simpan password yang sudah di-hash
+          hashed,
           _fullNameController.text.trim(),
           _phoneController.text.trim(),
         );
@@ -61,8 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
 
-      if (success) {
-        if (!mounted) return;
+      if (success && mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const MainScreen()),
         );
@@ -103,8 +105,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const bg = Color(0xFFF2F3F5);
     final size = MediaQuery.of(context).size;
-    const bg = Color(0xFFF2F3F5); // sama seperti Splash
 
     return Scaffold(
       backgroundColor: bg,
@@ -119,216 +121,51 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 16),
-                // Logo sederhana seperti Splash
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 260),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Image.asset(
+                LogoHeader(
+                  isLogin: _isLogin,
+                  titleLogin: 'Selamat Datang',
+                  titleRegister: 'Buat Akun Baru',
+                  subtitleLogin:
+                      'Nikmati pengalaman kuliner terbaik bersama kami',
+                  subtitleRegister: 'Daftar untuk memulai pengalaman kuliner',
+                  // Gambar dari URL (bukan asset)
+                  imageUrl:
                       'https://monitoringweb.decoratics.id/images/mbah-oerip/1761922682.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Icon(
-                        Icons.restaurant_rounded,
-                        size: 100,
-                        color: AppTheme.primaryOrange,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Judul & subjudul ringkas
-                Text(
-                  _isLogin ? "Selamat Datang" : "Buat Akun Baru",
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.textColor,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _isLogin
-                      ? "Nikmati pengalaman kuliner terbaik bersama kami"
-                      : "Daftar untuk memulai pengalaman kuliner",
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppTheme.textColor.withOpacity(0.75),
-                  ),
-                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 22),
 
-                // Form
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 18,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        if (!_isLogin) ...[
-                          TextFormField(
-                            controller: _fullNameController,
-                            validator: (v) =>
-                                v!.isEmpty ? 'Nama tidak boleh kosong' : null,
-                            decoration: _buildInputDecoration(
-                              "Nama Lengkap",
-                              Icons.person_outline,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextFormField(
-                            controller: _phoneController,
-                            keyboardType: TextInputType.phone,
-                            validator: (v) {
-                              final t = v?.trim() ?? '';
-                              if (t.isEmpty)
-                                return 'Nomor telepon tidak boleh kosong';
-                              if (t.length < 9)
-                                return 'Nomor telepon tidak valid';
-                              return null;
-                            },
-                            decoration: _buildInputDecoration(
-                              "Nomor Telepon",
-                              Icons.phone_outlined,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        TextFormField(
-                          controller: _usernameController,
-                          validator: (v) =>
-                              v!.isEmpty ? 'Username tidak boleh kosong' : null,
-                          decoration: _buildInputDecoration(
-                            "Username",
-                            Icons.account_circle_outlined,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          validator: (v) => v!.length < 5
-                              ? 'Password minimal 5 karakter'
-                              : null,
-                          decoration: _buildInputDecoration(
-                            "Password",
-                            Icons.lock_outline,
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: AppTheme.primaryOrange,
-                              ),
-                              onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: _isLoading
-                              ? Center(
-                                  child: CircularProgressIndicator(
-                                    color: AppTheme.primaryOrange,
-                                  ),
-                                )
-                              : ElevatedButton(
-                                  onPressed: _submit,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.primaryOrange,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 0,
-                                  ),
-                                  child: Text(
-                                    _isLogin ? "Login" : "Daftar",
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _isLogin = !_isLogin;
-                              _usernameController.clear();
-                              _passwordController.clear();
-                              _fullNameController.clear();
-                              _phoneController.clear();
-                            });
-                          },
-                          child: Text(
-                            _isLogin
-                                ? "Belum punya akun? Daftar sekarang"
-                                : "Sudah punya akun? Login",
-                            style: const TextStyle(
-                              color: AppTheme.primaryOrange,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                LoginForm(
+                  formKey: _formKey,
+                  isLogin: _isLogin,
+                  isLoading: _isLoading,
+                  obscurePassword: _obscurePassword,
+                  onToggleObscure: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                  fullNameController: _fullNameController,
+                  phoneController: _phoneController,
+                  usernameController: _usernameController,
+                  passwordController: _passwordController,
+                  onSubmit: _submit,
+                ),
+
+                const SizedBox(height: 8),
+                AuthToggleText(
+                  isLogin: _isLogin,
+                  onToggle: () {
+                    setState(() {
+                      _isLogin = !_isLogin;
+                      _usernameController.clear();
+                      _passwordController.clear();
+                      _fullNameController.clear();
+                      _phoneController.clear();
+                    });
+                  },
                 ),
                 const SizedBox(height: 24),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  InputDecoration _buildInputDecoration(
-    String label,
-    IconData icon, {
-    Widget? suffixIcon,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, color: AppTheme.primaryOrange),
-      suffixIcon: suffixIcon,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.grey, width: 1),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.grey, width: 1),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppTheme.primaryOrange, width: 2),
-      ),
-      filled: true,
-      fillColor: Colors.white,
-      labelStyle: const TextStyle(color: Colors.grey),
-      floatingLabelStyle: const TextStyle(
-        color: AppTheme.primaryOrange,
-        fontWeight: FontWeight.w600,
       ),
     );
   }
