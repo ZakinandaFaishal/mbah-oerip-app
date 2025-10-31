@@ -1,80 +1,174 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart' as picker;
 import '../providers/auth_provider.dart';
 import '../theme.dart';
 import 'feedback_screen.dart';
 import 'login_screen.dart';
+
+const String kDefaultAvatarUrl =
+    'https://monitoringweb.decoratics.id/images/mbah-oerip/1761932545.png';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   void _showEditSheet(BuildContext context, AuthProvider auth) {
     final nameCtrl = TextEditingController(text: auth.displayName);
-    final phoneCtrl = TextEditingController(
-      text: auth.phoneNumber,
-    ); // non-nullable sekarang
+    final phoneCtrl = TextEditingController(text: auth.phoneNumber);
+    String? avatarPath = auth.profilePicPath; // simpan path sementara
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          16,
-          16,
-          16 + MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Edit Profil',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+      builder: (_) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          Future<void> _pick(picker.ImageSource src) async {
+            final x = await picker.ImagePicker().pickImage(
+              source: src,
+              imageQuality: 85,
+            );
+            if (x != null) setSheetState(() => avatarPath = x.path);
+          }
+
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              16 + MediaQuery.of(context).viewInsets.bottom,
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Nama Lengkap',
-                prefixIcon: Icon(Icons.person_outline),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: phoneCtrl,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Nomor Telepon',
-                prefixIcon: Icon(Icons.phone_outlined),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  context.read<AuthProvider>().updateProfile(
-                    displayName: nameCtrl.text.trim(),
-                    phoneNumber: phoneCtrl.text.trim(),
-                  );
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryOrange,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Edit Profil',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 12),
+
+                // Avatar + tombol ubah foto
+                Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    CircleAvatar(
+                      radius: 64, // dulunya 40
+                      backgroundColor: AppTheme.primaryOrange.withOpacity(.15),
+                      backgroundImage:
+                          (avatarPath != null && avatarPath!.isNotEmpty)
+                          ? FileImage(File(avatarPath!))
+                          : const NetworkImage(kDefaultAvatarUrl),
+                    ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Material(
+                        color: Colors.white,
+                        shape: const CircleBorder(),
+                        child: IconButton(
+                          iconSize: 22, // sedikit lebih besar
+                          padding: const EdgeInsets.all(6),
+                          constraints: const BoxConstraints(
+                            minWidth: 36,
+                            minHeight: 36,
+                          ),
+                          icon: const Icon(Icons.photo_camera_outlined),
+                          onPressed: () async {
+                            final src =
+                                await showModalBottomSheet<picker.ImageSource>(
+                                  context: context,
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(16),
+                                    ),
+                                  ),
+                                  builder: (_) => SafeArea(
+                                    child: Wrap(
+                                      children: [
+                                        ListTile(
+                                          leading: const Icon(
+                                            Icons.photo_library_outlined,
+                                          ),
+                                          title: const Text(
+                                            'Pilih dari Galeri',
+                                          ),
+                                          onTap: () => Navigator.pop(
+                                            context,
+                                            picker.ImageSource.gallery,
+                                          ),
+                                        ),
+                                        ListTile(
+                                          leading: const Icon(
+                                            Icons.photo_camera_outlined,
+                                          ),
+                                          title: const Text(
+                                            'Ambil dari Kamera',
+                                          ),
+                                          onTap: () => Navigator.pop(
+                                            context,
+                                            picker.ImageSource.camera,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                            if (src != null) await _pick(src);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Nama Lengkap',
+                    prefixIcon: Icon(Icons.person_outline),
+                    border: OutlineInputBorder(),
                   ),
                 ),
-                child: const Text('Simpan'),
-              ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Nomor Telepon',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      context.read<AuthProvider>().updateProfile(
+                        displayName: nameCtrl.text.trim(),
+                        phoneNumber: phoneCtrl.text.trim(),
+                        profilePicPath: avatarPath, // simpan foto baru
+                      );
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryOrange,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Simpan'),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -83,10 +177,12 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
 
-    ImageProvider? avatar;
+    ImageProvider avatar;
     final pic = auth.profilePicPath;
     if (pic != null && pic.isNotEmpty && File(pic).existsSync()) {
       avatar = FileImage(File(pic));
+    } else {
+      avatar = const NetworkImage(kDefaultAvatarUrl);
     }
 
     return Scaffold(
@@ -144,17 +240,11 @@ class ProfileScreen extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
+                  // Avatar di header/profile card
                   CircleAvatar(
-                    radius: 40,
+                    radius: 56, // dulunya 40
                     backgroundColor: AppTheme.primaryOrange.withOpacity(.15),
                     backgroundImage: avatar,
-                    child: avatar == null
-                        ? const Icon(
-                            Icons.person,
-                            color: AppTheme.primaryOrange,
-                            size: 40,
-                          )
-                        : null,
                   ),
                   const SizedBox(height: 12),
                   Text(

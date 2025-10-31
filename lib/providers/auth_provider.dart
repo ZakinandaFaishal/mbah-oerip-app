@@ -13,6 +13,7 @@ class AuthProvider extends ChangeNotifier {
   String _username = '';
   String _displayName = '';
   String? _phoneNumber = ''; // tambah penyimpanan no HP
+  String? _profilePicPath;
 
   bool get isLoggedIn => _isLoggedIn;
   String get username => _loggedInUser ?? '';
@@ -29,7 +30,7 @@ class AuthProvider extends ChangeNotifier {
       ? currentUserData!['fullName'] as String
       : username;
 
-  String? get profilePicPath => currentUserData?['profilePic'] as String?;
+  String? get profilePicPath => _profilePicPath;
 
   // Getter phoneNumber yang aman (non-nullable) membaca dari Hive
   String get phoneNumber =>
@@ -51,15 +52,21 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // Panggil ini untuk update profil dari UI (tersimpan ke Hive)
-  void updateProfile({String? displayName, String? phoneNumber}) async {
+  Future<void> updateProfile({
+    String? displayName,
+    String? phoneNumber,
+    String? profilePicPath,
+  }) async {
     if (_loggedInUser == null) return;
     final data = Map<String, dynamic>.from(currentUserData ?? {});
     if (displayName != null) data['fullName'] = displayName;
     if (phoneNumber != null) data['phoneNumber'] = phoneNumber;
+    if (profilePicPath != null) data['profilePic'] = profilePicPath;
     await _userBox.put(_loggedInUser, data);
     // sinkronkan cache lokal opsional
     if (displayName != null) _displayName = displayName;
     if (phoneNumber != null) _phoneNumber = phoneNumber;
+    if (profilePicPath != null) _profilePicPath = profilePicPath;
     notifyListeners();
   }
 

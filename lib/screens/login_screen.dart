@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'main_screen.dart';
 import '../theme.dart';
+import '../utils/password_hasher.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -38,22 +39,24 @@ class _LoginScreenState extends State<LoginScreen> {
     bool success = false;
 
     try {
+      final hashed = await PasswordHasher.hash(_passwordController.text.trim());
+
       if (_isLogin) {
         success = await authProvider.login(
           _usernameController.text.trim(),
-          _passwordController.text.trim(),
+          hashed, // kirim password yang sudah di-hash
         );
       } else {
         success = await authProvider.register(
           _usernameController.text.trim(),
-          _passwordController.text.trim(),
+          hashed, // simpan password yang sudah di-hash
           _fullNameController.text.trim(),
           _phoneController.text.trim(),
         );
         if (success) {
           success = await authProvider.login(
             _usernameController.text.trim(),
-            _passwordController.text.trim(),
+            hashed,
           );
         }
       }
@@ -122,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Image.asset(
-                      'assets/images/logo.png',
+                      'https://monitoringweb.decoratics.id/images/mbah-oerip/1761922682.png',
                       fit: BoxFit.contain,
                       errorBuilder: (_, __, ___) => Icon(
                         Icons.restaurant_rounded,
