@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'dart:async';
+import 'package:provider/provider.dart';
 
 import '../models/menu_item.dart';
 import '../providers/cart_provider.dart';
@@ -12,10 +12,11 @@ import 'cart_screen.dart';
 
 // Widgets terpisah
 import '../widgets/menu/outlet_appbar_title.dart';
-import '../widgets/menu/menu_search_bar.dart';
-import '../widgets/menu/category_filter_chips.dart';
-import '../widgets/menu/menu_grid.dart';
-import '../widgets/menu/empty_menu_state.dart';
+import '../widgets/menu/cart_icon_button.dart';
+import '../widgets/menu/menu_body.dart';
+
+// Utils
+import '../utils/snackbar_utils.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -30,7 +31,6 @@ class _MenuScreenState extends State<MenuScreen> {
   final ApiService _apiService = ApiService();
   final TextEditingController _searchCtrl = TextEditingController();
 
-  // Outlet cabang (dropdown di AppBar)
   final List<String> _outlets = const [
     'Jl. Semarang - Yogyakarta',
     'Jl. Muntilan - Borobudur',
@@ -38,10 +38,8 @@ class _MenuScreenState extends State<MenuScreen> {
   ];
   String _selectedOutlet = 'Jl. Semarang - Yogyakarta';
 
-  // Cache future agar tidak refetch pada setiap setState
   late Future<List<MenuItem>> _menuFuture;
 
-  // Debounce untuk pencarian
   Timer? _searchDebounce;
   static const Duration _searchDelay = Duration(milliseconds: 500);
 
@@ -66,70 +64,6 @@ class _MenuScreenState extends State<MenuScreen> {
     });
   }
 
-  List<MenuItem> _filterItems(List<MenuItem> items) {
-    // Filter kategori
-    List<MenuItem> filtered = _selectedCategory == 'Semua'
-        ? items
-        : items
-              .where((item) => item.category.name == _selectedCategory)
-              .toList();
-
-    // Filter pencarian
-    if (_searchQuery.isNotEmpty) {
-      final q = _searchQuery.toLowerCase();
-      filtered = filtered.where((item) {
-        return item.name.toLowerCase().contains(q) ||
-            item.description.toLowerCase().contains(q);
-      }).toList();
-    }
-
-    return filtered;
-  }
-
-  // Helper: tampilkan snackbar modern
-  void _showModernSnackBar({
-    required String message,
-    required IconData icon,
-    required Color color,
-    String? actionLabel,
-    VoidCallback? onAction,
-    Duration duration = const Duration(seconds: 3),
-  }) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(icon, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 8,
-        duration: duration,
-        action: actionLabel != null
-            ? SnackBarAction(
-                label: actionLabel,
-                textColor: Colors.white,
-                onPressed: onAction ?? () {},
-              )
-            : null,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final idr = NumberFormat.currency(
@@ -151,71 +85,9 @@ class _MenuScreenState extends State<MenuScreen> {
           brandTitle: 'Ingkung Eco Mbah Oerip',
           outlets: _outlets,
           selected: _selectedOutlet,
-          onChanged: (val) {
-            setState(() => _selectedOutlet = val);
-          },
+          onChanged: (val) => setState(() => _selectedOutlet = val),
         ),
-        actions: [
-          // Badge Cart di AppBar
-          Consumer<CartProvider>(
-            builder: (context, cart, _) {
-              final count = cart.itemCount;
-              return IconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CartScreen()),
-                  );
-                },
-                icon: Stack(
-                  clipBehavior: Clip.none,
-            children: [
-              Stack(
-                alignment: Alignment.topRight,
-                children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.shopping_cart_outlined,
-                      color: AppTheme.primaryOrange,
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CartScreen()),
-                      );
-                    },
-                  ),
-                  if (cart.cartCount > 0)
-                    Positioned(
-                      right: 6,
-                      top: 6,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          '${cart.cartCount}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(width: 4),
-            ],
-                ),
-                tooltip: 'Keranjang',
-              );
-            },
-          ),
-          const SizedBox(width: 4),
-        ],
+        actions: const [CartIconButton(), SizedBox(width: 4)],
       ),
       body: FutureBuilder<List<MenuItem>>(
         future: _menuFuture,
@@ -230,90 +102,58 @@ class _MenuScreenState extends State<MenuScreen> {
           }
 
           final allMenuItems = snapshot.data ?? [];
-          final categories = [
-            'Semua',
-            ...allMenuItems.map((item) => item.category.name).toSet().toList(),
-          ];
-          final filteredItems = _filterItems(allMenuItems);
 
-          return Column(
-            children: [
-              // Search Bar
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                child: MenuSearchBar(
-                  controller: _searchCtrl,
-                  query: _searchQuery,
-                  hintText: 'Cari menu...',
-                  onChanged: _onSearchChanged,
-                  onSubmitted: (v) {
-                    _searchDebounce?.cancel();
-                    setState(() => _searchQuery = v);
-                  },
-                  onClear: () {
-                    _searchCtrl.clear();
-                    _searchDebounce?.cancel();
-                    setState(() => _searchQuery = '');
-                  },
+          return MenuBody(
+            idr: idr,
+            allMenuItems: allMenuItems,
+            selectedCategory: _selectedCategory,
+            onSelectedCategory: (cat) =>
+                setState(() => _selectedCategory = cat),
+            searchController: _searchCtrl,
+            searchQuery: _searchQuery,
+            onSearchChanged: _onSearchChanged,
+            onSearchSubmitted: (v) {
+              _searchDebounce?.cancel();
+              setState(() => _searchQuery = v);
+            },
+            onSearchClear: () {
+              _searchCtrl.clear();
+              _searchDebounce?.cancel();
+              setState(() => _searchQuery = '');
+            },
+            onItemTap: (item) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MenuDetailScreen(
+                    item: item,
+                    categoryName: item.category.name,
+                  ),
                 ),
-              ),
-
-              // Category Filter
-              SizedBox(
-                height: 48,
-                child: CategoryFilterChips(
-                  categories: categories,
-                  selected: _selectedCategory,
-                  onSelected: (cat) => setState(() => _selectedCategory = cat),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Menu Grid atau Empty State
-              Expanded(
-                child: filteredItems.isEmpty
-                    ? const EmptyMenuState()
-                    : MenuGrid(
-                        items: filteredItems,
-                        idr: idr,
-                        onItemTap: (item) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => MenuDetailScreen(
-                                item: item,
-                                categoryName: item.category.name,
-                              ),
-                            ),
-                          );
-                        },
-                        onAddCart: (item) {
-                          context.read<CartProvider>().addItem(
-                            id: item.id,
-                            name: item.name,
-                            imageUrl: item.imageUrl,
-                            priceInIDR: item.price,
-                            quantity: 1,
-                          );
-                          _showModernSnackBar(
-                            message: '${item.name} ditambahkan ke keranjang',
-                            icon: Icons.check_circle,
-                            color: Colors.green.shade600,
-                            actionLabel: 'Lihat',
-                            onAction: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const CartScreen(),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-              ),
-            ],
+              );
+            },
+            onAddCart: (item) {
+              context.read<CartProvider>().addItem(
+                id: item.id,
+                name: item.name,
+                imageUrl: item.imageUrl,
+                priceInIDR: item.price,
+                quantity: 1,
+              );
+              showModernSnackBar(
+                context,
+                message: '${item.name} ditambahkan ke keranjang',
+                icon: Icons.check_circle,
+                color: Colors.green.shade600,
+                actionLabel: 'Lihat',
+                onAction: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CartScreen()),
+                  );
+                },
+              );
+            },
           );
         },
       ),

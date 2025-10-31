@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import '../widgets/home/voucher_banner.dart';
+import '../utils/snackbar_utils.dart';
+import '../theme.dart';
 
 class VouchersScreen extends StatelessWidget {
   const VouchersScreen({super.key});
 
   void _toast(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+    showModernSnackBar(
+      context,
+      message: msg,
+      icon: Icons.local_offer,
+      color: AppTheme.primaryOrange,
     );
   }
 

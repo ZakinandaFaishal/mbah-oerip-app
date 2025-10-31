@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import '../utils/snackbar_utils.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -50,8 +51,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       _feedbackBox.put(key, _feedbackController.text.trim());
 
       _feedbackController.clear();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Terima kasih atas saran & kesannya!')),
+      showModernSnackBar(
+        context,
+        message: 'Terima kasih atas saran & kesannya!',
+        icon: Icons.check_circle,
+        color: Colors.green.shade600,
       );
     }
   }

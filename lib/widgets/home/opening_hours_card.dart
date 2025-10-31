@@ -4,6 +4,7 @@ import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 import '../../services/location_services.dart';
 import '../../theme.dart';
+import '../../utils/snackbar_utils.dart';
 
 class OpeningHoursCard extends StatefulWidget {
   final bool isOpen;
@@ -250,14 +251,13 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                         ),
                         onTap: () {
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: AppTheme.primaryOrange,
-                              content: Text(
+                          showModernSnackBar(
+                            context,
+                            message:
                                 'Dipilih: ${e.label} • ${fmt(e.userLocal)}',
-                              ),
-                              duration: const Duration(seconds: 2),
-                            ),
+                            icon: Icons.event_available,
+                            color: AppTheme.primaryOrange,
+                            duration: const Duration(seconds: 2),
                           );
                         },
                       ),
@@ -279,7 +279,10 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                   const SizedBox(height: 12),
 
                   OutlinedButton.icon(
-                    icon: const Icon(Icons.my_location, color: AppTheme.primaryOrange,),
+                    icon: const Icon(
+                      Icons.my_location,
+                      color: AppTheme.primaryOrange,
+                    ),
                     label: const Text('Gunakan Lokasi Saat Ini'),
                     onPressed: () async {
                       final reInfo = await _locService.detectUserTimeZone(
@@ -468,12 +471,12 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                     label: const Text('Pilih Waktu Ini'),
                     onPressed: () {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          backgroundColor: AppTheme.primaryOrange,
-                          content: Text('Dipilih: ${fmt(manualLocal)}'),
-                          duration: const Duration(seconds: 2),
-                        ),
+                      showModernSnackBar(
+                        context,
+                        message: 'Dipilih: ${fmt(manualLocal)}',
+                        icon: Icons.check,
+                        color: AppTheme.primaryOrange,
+                        duration: const Duration(seconds: 2),
                       );
                     },
                   ),

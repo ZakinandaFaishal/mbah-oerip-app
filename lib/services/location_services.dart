@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:location/location.dart' as loc;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geocoding/geocoding.dart' as geo;
+import '../utils/snackbar_utils.dart';
+import '../theme.dart';
 
 class UserTimeZoneInfo {
   final String zoneId; // contoh: Asia/Jakarta, Asia/Makassar, Europe/London
@@ -87,7 +89,12 @@ class LocationService {
   }
 
   void _showSnack(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    showModernSnackBar(
+      context,
+      message: msg,
+      icon: Icons.error_outline,
+      color: AppTheme.primaryRed,
+    );
   }
 
   // Helper: mapping placemark -> zona waktu + label

@@ -12,6 +12,7 @@ import '../widgets/menu_detail/detail_header_image.dart';
 import '../widgets/menu_detail/detail_info_section.dart';
 import '../widgets/menu_detail/price_currency_section.dart';
 import '../widgets/menu_detail/qty_add_to_cart_bar.dart';
+import '../utils/snackbar_utils.dart';
 
 class MenuDetailScreen extends StatefulWidget {
   final MenuItem item;
@@ -33,7 +34,11 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
-    final idr = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final idr = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
@@ -44,17 +49,21 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
         ),
         backgroundColor: AppTheme.backgroundWhite,
         elevation: 0.5,
-        iconTheme: const IconThemeData(
-          color: AppTheme.primaryOrange,
-        ),
+        iconTheme: const IconThemeData(color: AppTheme.primaryOrange),
         actions: [
           Stack(
             alignment: Alignment.topRight,
             children: [
               IconButton(
-                icon: const Icon(Icons.shopping_cart_outlined, color: AppTheme.primaryOrange),
+                icon: const Icon(
+                  Icons.shopping_cart_outlined,
+                  color: AppTheme.primaryOrange,
+                ),
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CartScreen()),
+                  );
                 },
               ),
               if (cart.cartCount > 0)
@@ -63,10 +72,17 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                   top: 6,
                   child: Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
                     child: Text(
                       '${cart.cartCount}',
-                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -92,9 +108,7 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                     idrPriceText: idr.format(widget.item.price),
                   ),
                   const SizedBox(height: 8),
-                  PriceCurrencySection(
-                    priceInIDR: widget.item.price,
-                  ),
+                  PriceCurrencySection(priceInIDR: widget.item.price),
                   const SizedBox(height: 24),
                 ],
               ),
@@ -111,23 +125,25 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
             onInc: () => setState(() => _qty++),
             onAdd: () {
               context.read<CartProvider>().addItem(
-                    id: widget.item.id,
-                    name: widget.item.name,
-                    imageUrl: widget.item.imageUrl,
-                    priceInIDR: widget.item.price,
-                    quantity: _qty,
+                id: widget.item.id,
+                name: widget.item.name,
+                imageUrl: widget.item.imageUrl,
+                priceInIDR: widget.item.price,
+                quantity: _qty,
+              );
+              showModernSnackBar(
+                context,
+                message: 'Ditambahkan ke keranjang',
+                icon: Icons.add_shopping_cart,
+                color: Colors.green.shade600,
+                duration: const Duration(milliseconds: 900),
+                actionLabel: 'Buka',
+                onAction: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CartScreen()),
                   );
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Ditambahkan ke keranjang'),
-                  duration: const Duration(milliseconds: 900),
-                  action: SnackBarAction(
-                    label: 'Buka',
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen()));
-                    },
-                  ),
-                ),
+                },
               );
             },
           ),

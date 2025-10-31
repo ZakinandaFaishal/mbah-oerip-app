@@ -5,6 +5,7 @@ import '../../../providers/orders_provider.dart';
 import '../../../services/notification_service.dart';
 import '../../../theme.dart';
 import 'format.dart';
+import '../../../utils/snackbar_utils.dart';
 
 Future<void> showConfirmCheckoutDialog(BuildContext context) async {
   final cart = context.read<CartProvider>();
@@ -44,60 +45,22 @@ Future<void> showConfirmCheckoutDialog(BuildContext context) async {
               cartProv.clear();
               if (context.mounted) {
                 Navigator.of(dialogContext).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: Colors.green.shade600,
-                    content: Row(
-                      children: [
-                        const Icon(Icons.check_circle, color: Colors.white),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Text(
-                            'Pesanan berhasil dibuat',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                showModernSnackBar(
+                  context,
+                  message: 'Pesanan berhasil dibuat',
+                  icon: Icons.check_circle,
+                  color: Colors.green.shade600,
                 );
                 DefaultTabController.of(context).animateTo(1);
               }
             } catch (e) {
               if (context.mounted) {
                 Navigator.of(dialogContext).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: Colors.red.shade600,
-                    content: Row(
-                      children: [
-                        const Icon(Icons.error_outline, color: Colors.white),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Gagal: $e',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                showModernSnackBar(
+                  context,
+                  message: 'Gagal: $e',
+                  icon: Icons.error_outline,
+                  color: Colors.red.shade600,
                 );
               }
             }

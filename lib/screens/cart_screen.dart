@@ -12,6 +12,7 @@ import '../widgets/cart/currency_selector.dart';
 import '../widgets/cart/cart_item_card.dart';
 import '../widgets/cart/bottom_checkout_bar.dart';
 import '../widgets/cart/empty_cart.dart';
+import '../utils/snackbar_utils.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -58,9 +59,12 @@ class _CartScreenState extends State<CartScreen> {
         context.read<CartProvider>().setDeliveryAddress(addr);
         _addrCtrl.text = addr ?? '';
         if (mounted) {
-          ScaffoldMessenger.of(
+          showModernSnackBar(
             context,
-          ).showSnackBar(const SnackBar(content: Text('Alamat terdeteksi')));
+            message: 'Alamat terdeteksi',
+            icon: Icons.location_on,
+            color: Colors.green.shade600,
+          );
         }
       }
     } finally {
@@ -143,10 +147,11 @@ class _CartScreenState extends State<CartScreen> {
                     if (cart.orderType == OrderType.delivery &&
                         (cart.deliveryAddress == null ||
                             cart.deliveryAddress!.trim().isEmpty)) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Isi alamat untuk delivery'),
-                        ),
+                      showModernSnackBar(
+                        context,
+                        message: 'Isi alamat untuk delivery',
+                        icon: Icons.error_outline,
+                        color: Colors.red,
                       );
                       return;
                     }
@@ -201,14 +206,11 @@ class _CartScreenState extends State<CartScreen> {
                                   Navigator.of(
                                     parentContext,
                                   ).pop(); // Tutup CartScreen
-                                  ScaffoldMessenger.of(
+                                  showModernSnackBar(
                                     parentContext,
-                                  ).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Pesanan $orderId berhasil dibuat',
-                                      ),
-                                    ),
+                                    message: 'Pesanan $orderId berhasil dibuat',
+                                    icon: Icons.check_circle,
+                                    color: Colors.green.shade600,
                                   );
                                 }
                               } catch (e) {
@@ -217,15 +219,12 @@ class _CartScreenState extends State<CartScreen> {
                                   Navigator.of(
                                     dialogContext,
                                   ).pop(); // Tutup dialog dulu
-                                  ScaffoldMessenger.of(
+                                  showModernSnackBar(
                                     parentContext,
-                                  ).showSnackBar(
-                                    SnackBar(
-                                      backgroundColor: Colors.red,
-                                      content: Text(
+                                    message:
                                         'Gagal menyimpan pesanan: ${e.toString()}',
-                                      ),
-                                    ),
+                                    icon: Icons.error_outline,
+                                    color: Colors.red,
                                   );
                                 }
                               }
