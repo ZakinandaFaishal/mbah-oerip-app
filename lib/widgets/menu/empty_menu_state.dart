@@ -5,27 +5,25 @@ class EmptyMenuState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search_off, size: 80, color: Colors.grey.shade300),
-            const SizedBox(height: 16),
-            const Text(
-              'Menu tidak ditemukan',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Coba ubah filter kategori atau pencarian Anda',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
-            ),
-          ],
+    final bottomPadding =
+        kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom + 24;
+
+    return ListView(
+      padding: EdgeInsets.fromLTRB(24, 60, 24, bottomPadding),
+      children: [
+        Icon(Icons.search_off, size: 80, color: Colors.grey.shade300),
+        const SizedBox(height: 16),
+        const Text(
+          'Menu tidak ditemukan',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
-      ),
+        const SizedBox(height: 4),
+        const Text(
+          'Coba ubah filter kategori atau pencarian Anda',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.grey),
+        ),
+      ],
     );
   }
 }

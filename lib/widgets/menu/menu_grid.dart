@@ -19,8 +19,11 @@ class MenuGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding =
+        kBottomNavigationBarHeight + MediaQuery.of(context).padding.bottom + 24;
+
     return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.fromLTRB(16, 8, 16, bottomPadding),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 0.68,
