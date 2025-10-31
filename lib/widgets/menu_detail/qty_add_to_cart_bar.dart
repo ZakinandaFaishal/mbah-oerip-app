@@ -54,7 +54,7 @@ class QtyAddToCartBar extends StatelessWidget {
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
-              backgroundColor: AppTheme.primaryColor,
+              backgroundColor: AppTheme.primaryOrange,
               foregroundColor: Colors.white,
             ),
           ),

@@ -425,7 +425,7 @@ class _UnpaidTab extends StatelessWidget {
                     // Checkout (primary)
                     Expanded(
                       child: ElevatedButton.icon(
-                        icon: const Icon(Icons.payment_rounded),
+                        icon: const Icon(Icons.payment_rounded, color: AppTheme.goldLight,),
                         label: const Text('Checkout'),
                         onPressed: () {
                           showDialog(

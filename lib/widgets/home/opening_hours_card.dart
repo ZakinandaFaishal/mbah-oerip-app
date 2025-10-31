@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 import '../../services/location_services.dart';
+import '../../theme.dart';
 
 class OpeningHoursCard extends StatefulWidget {
   final bool isOpen;
@@ -23,11 +24,10 @@ class OpeningHoursCard extends StatefulWidget {
 }
 
 class _OpeningHoursCardState extends State<OpeningHoursCard> {
-  static const _baseZoneId = 'Asia/Jakarta'; // WIB outlet
+  static const _baseZoneId = 'Asia/Jakarta';
 
   final LocationService _locService = LocationService();
 
-  // Jadwal outlet per hari (WIB)
   final Map<int, Map<String, int>> _schedule = const {
     1: {'open': 8, 'close': 21},
     2: {'open': 8, 'close': 21},
@@ -46,7 +46,6 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
     super.initState();
     tzdata.initializeTimeZones();
     _baseLoc = tz.getLocation(_baseZoneId);
-    // default user: WIB
     _userLoc = tz.getLocation('Asia/Jakarta');
   }
 
@@ -74,15 +73,9 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
     return baseDt.isAfter(open) && baseDt.isBefore(close);
   }
 
-  // Catatan: fungsi rekomendasi slot per 30 menit digantikan dengan rekomendasi sarapan/siang/malam
-
-  // Rekomendasi waktu makan (Sarapan, Siang, Malam) berdasarkan zona user
-  // Menyesuaikan ke jam operasional outlet (WIB). Jika di luar jam, digeser ke
-  // jam buka terdekat (atau ke hari berikutnya).
   List<({String label, tz.TZDateTime baseWib, tz.TZDateTime userLocal})>
   _mealRecommendations(String userZoneId) {
     final userLoc = tz.getLocation(userZoneId);
-    // final nowBase = tz.TZDateTime.now(_baseLoc); // tidak digunakan
 
     tz.TZDateTime openOf(tz.TZDateTime d) => tz.TZDateTime(
       _baseLoc,
@@ -101,8 +94,6 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
       0,
     );
 
-    // target default (WIB) untuk 3 waktu makan
-    // Sarapan 08:00, Siang 12:30, Malam 19:00 pada zona pengguna, lalu konversi ke WIB
     List<({String label, int hh, int mm})> meals = const [
       (label: 'Sarapan', hh: 8, mm: 0),
       (label: 'Makan Siang', hh: 12, mm: 30),
@@ -114,7 +105,6 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
         <({String label, tz.TZDateTime baseWib, tz.TZDateTime userLocal})>[];
 
     for (final m in meals) {
-      // waktu target di zona user
       var userT = tz.TZDateTime(
         userLoc,
         todayUser.year,
@@ -123,20 +113,16 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
         m.hh,
         m.mm,
       );
-      // jika sudah lewat, pakai hari berikutnya
       if (userT.isBefore(todayUser)) {
         userT = userT.add(const Duration(days: 1));
       }
-      // konversi ke WIB (base)
       var baseT = tz.TZDateTime.from(userT, _baseLoc);
 
-      // sesuaikan dengan jam operasional di WIB
       final open = openOf(baseT);
       final close = closeOf(baseT);
       if (baseT.isBefore(open)) {
         baseT = open;
       } else if (!baseT.isBefore(close)) {
-        // geser ke hari berikutnya pada jam buka
         final next = baseT.add(const Duration(days: 1));
         baseT = openOf(next);
       }
@@ -164,7 +150,6 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
     bool withinManual() =>
         _isWithinOpenHours(tz.TZDateTime.from(manualLocal, _baseLoc));
 
-    // Daftar preset lokasi manual (tanpa input teks)
     final presets = <Map<String, String>>[
       {'label': 'WIB (Jakarta)', 'id': 'Asia/Jakarta'},
       {'label': 'WITA (Makassar)', 'id': 'Asia/Makassar'},
@@ -179,7 +164,7 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
       showDragHandle: true,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) {
         Future<void> applyZone(BuildContext ctx, String zoneId) async {
@@ -204,39 +189,72 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                 children: [
                   const Text(
                     'Rekomendasi Waktu Reservasi',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: AppTheme.primaryOrange,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     (info.address == null || info.address!.isEmpty)
                         ? 'Zona Anda: ${info.label}'
                         : 'Lokasi: ${info.address} • Zona: ${info.label}',
-                    style: TextStyle(color: Colors.grey.shade700),
+                    style: TextStyle(
+                      color: AppTheme.textColor.withOpacity(0.7),
+                    ),
                   ),
                   const SizedBox(height: 12),
 
                   // Rekomendasi Sarapan / Siang / Malam
                   ...mealRecs.map(
                     (e) => Card(
-                      elevation: 0.5,
+                      elevation: 0,
                       margin: const EdgeInsets.only(bottom: 10),
-                      child: ListTile(
-                        leading: const Icon(
-                          Icons.event_available,
-                          color: Colors.green,
+                      color: AppTheme.goldPale.withOpacity(0.4),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: AppTheme.accentOrange.withOpacity(0.3),
                         ),
-                        title: Text('${e.label}: ${fmt(e.userLocal)}'),
+                      ),
+                      child: ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppTheme.accentOrange.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.event_available,
+                            color: AppTheme.accentOrange,
+                          ),
+                        ),
+                        title: Text(
+                          '${e.label}: ${fmt(e.userLocal)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textColor,
+                          ),
+                        ),
                         subtitle: Text(
                           'WIB: ${DateFormat('dd MMM yyyy • HH:mm', 'id_ID').format(e.baseWib)}',
+                          style: TextStyle(
+                            color: AppTheme.textColor.withOpacity(0.6),
+                          ),
                         ),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: const Icon(
+                          Icons.chevron_right,
+                          color: AppTheme.accentOrange,
+                        ),
                         onTap: () {
                           Navigator.pop(context);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
+                              backgroundColor: AppTheme.primaryOrange,
                               content: Text(
-                                'Dipilih: ${e.label} • ${fmt(e.userLocal)} '
-                                '(${DateFormat('HH:mm', 'id_ID').format(e.baseWib)} WIB)',
+                                'Dipilih: ${e.label} • ${fmt(e.userLocal)}',
                               ),
                               duration: const Duration(seconds: 2),
                             ),
@@ -247,19 +265,21 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                   ),
 
                   const SizedBox(height: 12),
-                  const Divider(),
-                  const SizedBox(height: 8),
+                  Divider(color: AppTheme.accentOrange.withOpacity(0.2)),
+                  const SizedBox(height: 12),
 
-                  // PILIHAN MANUAL TANPA INPUT TEKS
-                  const Text(
+                  Text(
                     'Pilih Lokasi Manual',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: AppTheme.primaryOrange,
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
 
-                  // Tombol: pakai lokasi saat ini (deteksi ulang)
                   OutlinedButton.icon(
-                    icon: const Icon(Icons.my_location),
+                    icon: const Icon(Icons.my_location, color: AppTheme.primaryOrange,),
                     label: const Text('Gunakan Lokasi Saat Ini'),
                     onPressed: () async {
                       final reInfo = await _locService.detectUserTimeZone(
@@ -270,7 +290,6 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                   ),
                   const SizedBox(height: 8),
 
-                  // ChoiceChip preset zona
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -279,22 +298,33 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                       return ChoiceChip(
                         label: Text(z['label']!),
                         selected: selected,
+                        selectedColor: AppTheme.accentOrange.withOpacity(0.3),
+                        labelStyle: TextStyle(
+                          color: selected
+                              ? AppTheme.primaryOrange
+                              : AppTheme.textColor,
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.normal,
+                        ),
                         onSelected: (_) => applyZone(ctx, z['id']!),
                       );
                     }).toList(),
                   ),
 
-                  const SizedBox(height: 12),
                   const SizedBox(height: 16),
-                  const Divider(),
-                  const SizedBox(height: 8),
+                  Divider(color: AppTheme.accentOrange.withOpacity(0.2)),
+                  const SizedBox(height: 12),
 
-                  // Atur jadwal sendiri
-                  const Text(
+                  Text(
                     'Atur Jadwal Anda Sendiri',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: AppTheme.primaryOrange,
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
@@ -372,19 +402,23 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
 
-                  // Validasi + konversi hasil manual
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: withinManual()
-                          ? Colors.green.withOpacity(.08)
-                          : Colors.red.withOpacity(.08),
+                      color:
+                          (withinManual()
+                                  ? AppTheme.accentOrange
+                                  : AppTheme.primaryRed)
+                              .withOpacity(.1),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: (withinManual() ? Colors.green : Colors.red)
-                            .withOpacity(.3),
+                        color:
+                            (withinManual()
+                                    ? AppTheme.accentOrange
+                                    : AppTheme.primaryRed)
+                                .withOpacity(.3),
                       ),
                     ),
                     child: Row(
@@ -393,7 +427,9 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                           withinManual()
                               ? Icons.check_circle
                               : Icons.error_outline,
-                          color: withinManual() ? Colors.green : Colors.red,
+                          color: withinManual()
+                              ? AppTheme.accentOrange
+                              : AppTheme.primaryRed,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -403,8 +439,8 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                                 : 'Di luar jam operasional outlet (WIB). Silakan pilih waktu lain.',
                             style: TextStyle(
                               color: withinManual()
-                                  ? Colors.green.shade800
-                                  : Colors.red.shade800,
+                                  ? AppTheme.accentOrange
+                                  : AppTheme.primaryRed,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -412,13 +448,19 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
                     'Waktu Anda: ${fmt(manualLocal)}',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textColor,
+                    ),
                   ),
                   Text(
                     'WIB: ${DateFormat('EEE, dd MMM yyyy • HH:mm', 'id_ID').format(manualWib)}',
+                    style: TextStyle(
+                      color: AppTheme.textColor.withOpacity(0.7),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton.icon(
@@ -428,10 +470,8 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(
-                            'Dipilih: ${fmt(manualLocal)} '
-                            '(${DateFormat('HH:mm', 'id_ID').format(manualWib)} WIB)',
-                          ),
+                          backgroundColor: AppTheme.primaryOrange,
+                          content: Text('Dipilih: ${fmt(manualLocal)}'),
                           duration: const Duration(seconds: 2),
                         ),
                       );
@@ -448,19 +488,26 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = widget.isOpen ? Colors.green : Colors.red;
+    final statusColor = widget.isOpen
+        ? AppTheme.accentOrange
+        : AppTheme.primaryRed;
     final nowJakarta = DateFormat('HH:mm').format(DateTime.now());
 
-    // tampilkan header/info jam buka + tombol panel
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.orange.shade50, Colors.orange.shade100],
+            colors: [
+              AppTheme.goldPale.withOpacity(0.5),
+              AppTheme.backgroundWhite,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          border: Border.all(color: AppTheme.accentOrange.withOpacity(0.2)),
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -468,7 +515,8 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: statusColor.withOpacity(.15),
                     borderRadius: BorderRadius.circular(12),
@@ -476,6 +524,7 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                   child: Icon(
                     widget.isOpen ? Icons.access_time_filled : Icons.lock_clock,
                     color: statusColor,
+                    size: 24,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -485,19 +534,26 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                     children: [
                       Text(
                         'Jam Buka ${widget.dayLabel}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: AppTheme.primaryOrange,
+                        ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
                         '${widget.openHour.toString().padLeft(2, '0')}:00 - ${widget.closeHour.toString().padLeft(2, '0')}:00 WIB',
-                        style: TextStyle(color: Colors.grey.shade700),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textColor,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Sekarang: $nowJakarta WIB',
                         style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
+                          fontSize: 11,
+                          color: AppTheme.textColor.withOpacity(0.6),
                         ),
                       ),
                     ],
@@ -505,25 +561,28 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
+                    horizontal: 12,
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(.1),
+                    color: statusColor.withOpacity(.15),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: statusColor.withOpacity(0.3)),
                   ),
                   child: Text(
                     widget.isOpen ? 'Buka' : 'Tutup',
                     style: TextStyle(
                       color: statusColor,
                       fontWeight: FontWeight.bold,
+                      fontSize: 12,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            const Divider(),
+            const SizedBox(height: 12),
+            Divider(color: AppTheme.accentOrange.withOpacity(0.2)),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -531,9 +590,10 @@ class _OpeningHoursCardState extends State<OpeningHoursCard> {
                 label: const Text('Jadwalkan Reservasi Anda'),
                 onPressed: _openSchedulePanel,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.orange.shade800,
-                  side: BorderSide(color: Colors.orange.shade300),
+                  backgroundColor: AppTheme.primaryOrange,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
             ),

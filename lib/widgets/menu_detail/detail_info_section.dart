@@ -24,7 +24,7 @@ class DetailInfoSection extends StatelessWidget {
           categoryName,
           style: TextStyle(
             fontSize: 16,
-            color: AppTheme.accentColor.withOpacity(0.8),
+            color: AppTheme.primaryOrange,
             fontWeight: FontWeight.w500,
           ),
         ),

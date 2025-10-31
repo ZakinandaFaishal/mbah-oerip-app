@@ -31,7 +31,10 @@ class HomeSearchBar extends StatelessWidget {
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               hintText: hintText,
-              prefixIcon: const Icon(Icons.search),
+              prefixIcon: const Icon(
+                Icons.search,
+                color: AppTheme.primaryOrange,
+                ),
               suffixIcon: query.isNotEmpty
                   ? IconButton(
                       tooltip: 'Bersihkan',

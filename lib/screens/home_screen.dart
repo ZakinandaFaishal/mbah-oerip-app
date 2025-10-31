@@ -63,7 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
     {
       'image':
           'https://lh3.googleusercontent.com/gps-cs-s/AG0ilSzdAI_Iu8tmlg22T5ItelnRmdR3ncK94d8xs-CMuLPWvqGbNMrJx-57d7mMdXreBp2Kyfn_3oBC-93PdomzQ_Wpb66HqEJWjPegLa1IiA0A_F9uRPA0iytqCRSrecr4CmG5MV_umw=s680-w680-h510-rw',
-      'title': 'Spesial Oktober Ceria',
+      'title': 'November Ceria',
       'subtitle': 'Potongan hingga 30%',
     },
   ];

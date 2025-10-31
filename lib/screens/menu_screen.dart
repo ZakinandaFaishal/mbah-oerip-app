@@ -155,6 +155,67 @@ class _MenuScreenState extends State<MenuScreen> {
             setState(() => _selectedOutlet = val);
           },
         ),
+        actions: [
+          // Badge Cart di AppBar
+          Consumer<CartProvider>(
+            builder: (context, cart, _) {
+              final count = cart.itemCount;
+              return IconButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CartScreen()),
+                  );
+                },
+                icon: Stack(
+                  clipBehavior: Clip.none,
+            children: [
+              Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.shopping_cart_outlined,
+                      color: AppTheme.primaryOrange,
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CartScreen()),
+                      );
+                    },
+                  ),
+                  if (cart.cartCount > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '${cart.cartCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 4),
+            ],
+                ),
+                tooltip: 'Keranjang',
+              );
+            },
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
       body: FutureBuilder<List<MenuItem>>(
         future: _menuFuture,
