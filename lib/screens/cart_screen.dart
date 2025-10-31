@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/orders_provider.dart';
 import '../services/location_services.dart';
+import '../services/notification_service.dart';
 
 import '../widgets/cart/order_type_selector.dart';
 import '../widgets/cart/address_section.dart';
@@ -176,11 +177,20 @@ class _CartScreenState extends State<CartScreen> {
                                     .read<OrdersProvider>();
                                 final cartProv = parentContext
                                     .read<CartProvider>();
+                                final totalIdr = cartProv
+                                    .subtotalIDR; // simpan sebelum clear
 
                                 final orderId = await ordersProv.saveFromCart(
                                   cartProv,
                                   status: 'Diproses',
                                 );
+
+                                // Tampilkan notifikasi
+                                await NotificationService.instance
+                                    .showOrderSuccess(
+                                      orderId: orderId,
+                                      totalInIDR: totalIdr,
+                                    );
 
                                 cartProv.clear();
 

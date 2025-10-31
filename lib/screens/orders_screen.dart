@@ -7,6 +7,7 @@ import '../providers/orders_provider.dart';
 import '../theme.dart';
 import 'cart_screen.dart';
 import '../models/order_record.dart';
+import '../services/notification_service.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -451,15 +452,20 @@ class _UnpaidTab extends StatelessWidget {
                                 ElevatedButton(
                                   onPressed: () async {
                                     try {
-                                      final ordersProv = context
-                                          .read<OrdersProvider>();
-                                      final cartProv = context
-                                          .read<CartProvider>();
-                                      final orderId = await ordersProv
-                                          .saveFromCart(
-                                            cartProv,
-                                            status: 'Diproses',
-                                          );
+                                      final ordersProv = context.read<OrdersProvider>();
+                                      final cartProv = context.read<CartProvider>();
+                                      final totalIdr = cartProv.subtotalIDR; // simpan sebelum clear
+                                      final orderId = await ordersProv.saveFromCart(
+                                        cartProv,
+                                        status: 'Diproses',
+                                      );
+
+                                      // Notifikasi lokal
+                                      await NotificationService.instance.showOrderSuccess(
+                                        orderId: orderId,
+                                        totalInIDR: totalIdr,
+                                      );
+
                                       cartProv.clear();
                                       if (context.mounted) {
                                         Navigator.of(dialogContext).pop();

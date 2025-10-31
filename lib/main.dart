@@ -6,7 +6,7 @@ import 'package:ingkung_mbah_oerip/theme.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
-
+import 'services/notification_service.dart';
 import 'providers/auth_provider.dart';
 
 void main() async {
@@ -14,11 +14,12 @@ void main() async {
   await initializeDateFormatting('id_ID', null);
   await Hive.initFlutter();
 
-  // Buka semua box yang akan digunakan di sini
   await Hive.openBox('users');
   await Hive.openBox('session');
   await Hive.openBox('feedback');
 
+  // init notifikasi lokal
+  await NotificationService.instance.init();
 
   runApp(
     MultiProvider(
