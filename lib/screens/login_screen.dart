@@ -7,6 +7,7 @@ import '../utils/password_hasher.dart';
 import '../widgets/auth/logo_header.dart';
 import '../widgets/auth/login_form.dart';
 import '../widgets/auth/auth_toggle_text.dart';
+// imports cleaned
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -146,6 +147,34 @@ class _LoginScreenState extends State<LoginScreen> {
                   usernameController: _usernameController,
                   passwordController: _passwordController,
                   onSubmit: _submit,
+                ),
+                const SizedBox(height: 8),
+                // Continue as guest (browsing only, cannot checkout)
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () async {
+                      final auth = Provider.of<AuthProvider>(
+                        context,
+                        listen: false,
+                      );
+                      await auth.signInAsGuest();
+                      if (context.mounted) {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(builder: (_) => const MainScreen()),
+                        );
+                      }
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: AppTheme.primaryOrange),
+                      foregroundColor: AppTheme.primaryOrange,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text('Lanjutkan sebagai Tamu'),
+                  ),
                 ),
 
                 const SizedBox(height: 8),

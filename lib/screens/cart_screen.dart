@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:ingkung_mbah_oerip/screens/login_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/orders_provider.dart';
+import '../providers/auth_provider.dart';
 import '../services/location_services.dart';
 import '../services/notification_service.dart';
 
@@ -177,6 +179,43 @@ class _CartScreenState extends State<CartScreen> {
                           ),
                           ElevatedButton(
                             onPressed: () async {
+                              final auth = context.read<AuthProvider>();
+                              // Require login to perform checkout
+                              if (!auth.isLoggedIn) {
+                                // Show dialog prompting user to login or cancel
+                                if (context.mounted) {
+                                  showDialog(
+                                    context: context,
+                                    builder: (dCtx) => AlertDialog(
+                                      title: const Text('Perlu Login'),
+                                      content: const Text(
+                                        'Anda harus login untuk melakukan checkout. Silakan login atau daftar terlebih dahulu.',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(dCtx).pop(),
+                                          child: const Text('Batal'),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            Navigator.of(dCtx).pop();
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    const LoginScreen(),
+                                              ),
+                                            );
+                                          },
+                                          child: const Text('Login'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                                return;
+                              }
+
                               try {
                                 final ordersProv = parentContext
                                     .read<OrdersProvider>();

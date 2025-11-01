@@ -7,6 +7,8 @@ import '../models/menu_item.dart';
 import '../providers/cart_provider.dart';
 import '../services/api_service.dart';
 import '../theme.dart';
+import '../providers/auth_provider.dart';
+import 'login_screen.dart';
 import 'menu_detail_screen.dart';
 import 'cart_screen.dart';
 
@@ -133,6 +135,37 @@ class _MenuScreenState extends State<MenuScreen> {
               );
             },
             onAddCart: (item) {
+              final auth = context.read<AuthProvider>();
+              if (!auth.isLoggedIn) {
+                showDialog(
+                  context: context,
+                  builder: (dCtx) => AlertDialog(
+                    title: const Text('Butuh Login'),
+                    content: const Text(
+                      'Silakan login atau daftar untuk menambahkan item ke keranjang.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(dCtx).pop(),
+                        child: const Text('Batal'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(dCtx).pop();
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const LoginScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text('Login'),
+                      ),
+                    ],
+                  ),
+                );
+                return;
+              }
+
               context.read<CartProvider>().addItem(
                 id: item.id,
                 name: item.name,

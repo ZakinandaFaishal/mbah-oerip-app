@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../screens/login_screen.dart';
 import '../../models/menu_item.dart';
 import '../../providers/cart_provider.dart';
 import '../../screens/cart_screen.dart';
@@ -77,6 +79,37 @@ class SpecialsGridSection extends StatelessWidget {
                       );
                     },
                     onAddCart: () {
+                      final auth = context.read<AuthProvider>();
+                      if (!auth.isLoggedIn) {
+                        showDialog(
+                          context: context,
+                          builder: (dCtx) => AlertDialog(
+                            title: const Text('Butuh Login'),
+                            content: const Text(
+                              'Silakan login atau daftar untuk menambahkan item ke keranjang.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(dCtx).pop(),
+                                child: const Text('Batal'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(dCtx).pop();
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const LoginScreen(),
+                                    ),
+                                  );
+                                },
+                                child: const Text('Login'),
+                              ),
+                            ],
+                          ),
+                        );
+                        return;
+                      }
+
                       context.read<CartProvider>().addItem(
                         id: it.id,
                         name: it.name,

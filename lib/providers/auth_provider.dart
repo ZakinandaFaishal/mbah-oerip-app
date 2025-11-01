@@ -9,6 +9,7 @@ class AuthProvider extends ChangeNotifier {
   final Box _sessionBox = Hive.box('session');
 
   bool _isLoggedIn = false;
+  bool _isGuest = false;
   String? _loggedInUser;
   String _username = '';
   String _displayName = '';
@@ -32,6 +33,8 @@ class AuthProvider extends ChangeNotifier {
 
   String? get profilePicPath => _profilePicPath;
 
+  bool get isGuest => _isGuest;
+
   // Getter phoneNumber yang aman (non-nullable) membaca dari Hive
   String get phoneNumber =>
       (currentUserData?['phoneNumber'] as String?)?.trim() ?? '';
@@ -43,6 +46,18 @@ class AuthProvider extends ChangeNotifier {
   void _checkLoginStatus() {
     _loggedInUser = _sessionBox.get('currentUser') as String?;
     _isLoggedIn = _loggedInUser != null;
+    // If session contains guest flag, treat as guest
+    final guestFlag = _sessionBox.get('isGuest');
+    _isGuest = guestFlag == true;
+  }
+
+  // Sign in as a local guest (no backend). Guest can browse but cannot checkout.
+  Future<void> signInAsGuest() async {
+    _isGuest = true;
+    _isLoggedIn = false; // not a real authenticated user
+    _loggedInUser = null;
+    await _sessionBox.put('isGuest', true);
+    notifyListeners();
   }
 
   String _hashPassword(String password) {
@@ -116,6 +131,7 @@ class AuthProvider extends ChangeNotifier {
     await _sessionBox.clear(); // Hapus sesi
     _isLoggedIn = false;
     _loggedInUser = null;
+    _isGuest = false;
     notifyListeners();
   }
 
