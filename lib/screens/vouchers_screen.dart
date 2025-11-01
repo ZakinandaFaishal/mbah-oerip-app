@@ -1,19 +1,68 @@
+import 'dart:math';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import '../widgets/home/voucher_banner.dart';
+import '../utils/shake_detector.dart';
 import '../utils/snackbar_utils.dart';
+import '../widgets/voucher/shake_promo_banner.dart';
 import '../theme.dart';
+import '../widgets/home/voucher_banner.dart';
 
-class VouchersScreen extends StatelessWidget {
+
+class VouchersScreen extends StatefulWidget {
   const VouchersScreen({super.key});
 
-  void _toast(BuildContext context, String msg) {
+  @override
+  State<VouchersScreen> createState() => _VouchersScreenState();
+}
+
+class _VouchersScreenState extends State<VouchersScreen> {
+  late final ShakeDetector _shake;
+  bool _unlocked = false;
+  String? _voucherCode;
+  int? _discount;
+
+  @override
+  void initState() {
+    super.initState();
+    _shake = ShakeDetector(
+      onShake: _onShake,
+      threshold: 18.0, // bisa turunkan jika terlalu sensitif: 14–16
+    );
+    _shake.start();
+  }
+
+  @override
+  void dispose() {
+    _shake.stop();
+    super.dispose();
+  }
+
+  void _onShake() {
+    if (_unlocked) return;
+    final percent = [10, 15, 20, 25, 30][Random().nextInt(5)];
+    final ts = DateTime.now().millisecondsSinceEpoch
+        .toRadixString(36)
+        .toUpperCase();
+    final code = 'SHAKE-${ts.substring(ts.length - 5)}';
+
+    setState(() {
+      _unlocked = true;
+      _discount = percent;
+      _voucherCode = code;
+    });
+
+    HapticFeedback.mediumImpact();
     showModernSnackBar(
       context,
-      message: msg,
-      icon: Icons.local_offer,
-      color: AppTheme.primaryOrange,
+      message: 'Voucher $code diskon $percent% dibuka!',
+      icon: Icons.card_giftcard,
+      color: Colors.green.shade600,
+      actionLabel: 'Salin',
+      onAction: () => Clipboard.setData(ClipboardData(text: code)),
     );
   }
+
+  void _testTap() => _onShake(); // untuk emulator
 
   @override
   Widget build(BuildContext context) {
@@ -29,15 +78,52 @@ class VouchersScreen extends StatelessWidget {
         elevation: 0.5,
       ),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          bottomPad,
+        ), // gunakan bottomPad
         children: [
+          ShakePromoBanner(
+            unlocked: _unlocked,
+            discount: _discount,
+            onTapTest: _onShake, // tap untuk uji di emulator
+          ),
+          const SizedBox(height: 16),
+
+          if (_unlocked)
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ListTile(
+                leading: const Icon(Icons.local_offer, color: Colors.green),
+                title: Text('$_discount% OFF - ${_voucherCode ?? ''}'),
+                subtitle: const Text('Klaim hari ini saja. S&K berlaku.'),
+                trailing: TextButton(
+                  onPressed: () => Clipboard.setData(
+                    ClipboardData(text: _voucherCode ?? ''),
+                  ),
+                  child: const Text('SALIN'),
+                ),
+              ),
+            ),
+          const SizedBox(height: 12),
+
+          // Banner voucher sebelumnya (dipertahankan)
           VoucherBanner(
             title: 'Diskon 30% Ingkung Ayam',
             subtitle: 'Hemat hingga Rp 30.000. Minimal belanja Rp 100.000',
             imageUrl:
                 'https://www.pesonaborobudur.com/assets/upload/galeri/Ingkung_Ayam.jpg',
             buttonLabel: 'Pakai',
-            onTap: () => _toast(context, 'Voucher 30% diterapkan'),
+            onTap: () => showModernSnackBar(
+              context,
+              message: 'Voucher 30% diterapkan',
+              icon: Icons.local_offer,
+              color: AppTheme.primaryOrange,
+            ),
           ),
           const SizedBox(height: 12),
           VoucherBanner(
@@ -46,7 +132,12 @@ class VouchersScreen extends StatelessWidget {
             imageUrl:
                 'https://cdn-oss.ginee.com/official/wp-content/uploads/2022/03/image-446-704-1024x307.png',
             buttonLabel: 'Klaim',
-            onTap: () => _toast(context, 'Cashback 10% diklaim'),
+            onTap: () => showModernSnackBar(
+              context,
+              message: 'Cashback 10% diklaim',
+              icon: Icons.local_offer,
+              color: AppTheme.primaryOrange,
+            ),
           ),
           const SizedBox(height: 12),
           VoucherBanner(
@@ -55,16 +146,26 @@ class VouchersScreen extends StatelessWidget {
             imageUrl:
                 'https://bigseller-1251220924.cos.accelerate.myqcloud.com/static/faq/2025/1740015181066427.jpg',
             buttonLabel: 'Pakai',
-            onTap: () => _toast(context, 'Gratis ongkir diaktifkan'),
+            onTap: () => showModernSnackBar(
+              context,
+              message: 'Gratis ongkir diaktifkan',
+              icon: Icons.local_shipping_outlined,
+              color: AppTheme.primaryOrange,
+            ),
           ),
           const SizedBox(height: 12),
           VoucherBanner(
             title: 'Buy 1 Get 1',
-            subtitle: 'Berlaku untuk minuman pilihan setiap akhir pekan',
+            subtitle: 'Minuman pilihan setiap akhir pekan',
             imageUrl:
                 'https://adsumo.co/blog/wp-content/uploads/2025/07/Nama-nama-Minuman-Tradisional-Ini-Cocok-untuk-Peluang-Bisnis-Kuliner-512x341.webp',
             buttonLabel: 'Klaim',
-            onTap: () => _toast(context, 'Promo B1G1 digunakan'),
+            onTap: () => showModernSnackBar(
+              context,
+              message: 'Promo B1G1 digunakan',
+              icon: Icons.local_offer,
+              color: AppTheme.primaryOrange,
+            ),
           ),
         ],
       ),
