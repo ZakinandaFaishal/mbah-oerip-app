@@ -15,6 +15,8 @@ import '../widgets/home/specials_grid_section.dart';
 import '../widgets/home/section_title.dart';
 import '../utils/open_hours.dart';
 import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
+import '../utils/snackbar_utils.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -64,6 +66,28 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     OpenHours.ensureInit();
     _popularFuture = _api.fetchAllMenuItems();
+  }
+
+  static const String _whatsAppNumber = '+62821388788657';
+
+  Future<void> _openWhatsApp(BuildContext context) async {
+    try {
+      // format untuk wa.me: gunakan angka tanpa + dan tanpa spasi
+      final digits = _whatsAppNumber.replaceAll(RegExp(r'[^0-9]'), '');
+      final uri = Uri.parse(
+        'https://wa.me/$digits?text=${Uri.encodeComponent('Halo, saya mau pesan / tanya menu')}',
+      );
+      final ok = await canLaunchUrl(uri);
+      if (!ok) throw 'Tidak bisa membuka WhatsApp';
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      showModernSnackBar(
+        context,
+        message: 'Gagal membuka WhatsApp: ${e.toString()}',
+        icon: Icons.error_outline,
+        color: Colors.red,
+      );
+    }
   }
 
   @override
@@ -151,6 +175,33 @@ class _HomeScreenState extends State<HomeScreen> {
           if (_homeSearchQuery.isEmpty)
             SliverToBoxAdapter(
               child: SpecialsGridSection(itemsFuture: _popularFuture),
+            ),
+
+          // Kontak WhatsApp rumah makan
+          if (_homeSearchQuery.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                child: Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.chat,
+                      color: Colors.green.shade700,
+                      size: 34,
+                    ),
+                    title: const Text('Kontak WhatsApp'),
+                    subtitle: Text(_whatsAppNumber),
+                    trailing: ElevatedButton.icon(
+                      onPressed: () => _openWhatsApp(context),
+                      icon: const Icon(Icons.chat_bubble),
+                      label: const Text('Chat'),
+                    ),
+                  ),
+                ),
+              ),
             ),
 
           if (_homeSearchQuery.isEmpty)
