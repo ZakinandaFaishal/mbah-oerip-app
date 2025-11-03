@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ingkung_mbah_oerip/services/location_services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/auth_provider.dart';
@@ -129,8 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() => _homeSearchQuery = '');
             },
             onDirectionTap: () {
-              // arahkan via LocationService jika diperlukan
-              // dipanggil dari HomeSearchBar
+          LocationService().openDirectionsInGoogleMaps(context);
             },
           ),
 

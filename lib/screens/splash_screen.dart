@@ -21,7 +21,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _goNext() async {
     // jeda singkat agar logo terlihat
-    await Future.delayed(const Duration(milliseconds: 1200));
+    await Future.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
