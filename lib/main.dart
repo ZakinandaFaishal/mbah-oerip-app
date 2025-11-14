@@ -16,8 +16,14 @@ void main() async {
 
   // INIT SUPABASE lebih awal (sebelum ada akses ke Supabase.instance)
   await ApiService.initialize();
-
-  await NotificationService.instance.init();
+  // Inisialisasi notifikasi; jangan gagalkan boot jika ada error platform
+  try {
+    await NotificationService.instance.init();
+  } catch (e) {
+    // Jangan crash pada release; cukup log
+    // ignore: avoid_print
+    print('Notification init failed: $e');
+  }
 
   runApp(
     MultiProvider(

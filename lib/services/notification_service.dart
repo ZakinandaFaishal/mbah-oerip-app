@@ -15,14 +15,22 @@ class NotificationService {
 
   Future<void> init() async {
     // Android & Linux need explicit initialization settings.
-    const androidInit = AndroidInitializationSettings('@drawable/splash_logo');
-    const linuxInit = LinuxInitializationSettings(defaultActionName: 'Open');
-    // (Optional) add iOS/macOS later if needed
-    const initSettings = InitializationSettings(
-      android: androidInit,
-      linux: linuxInit,
-    );
-    await _plugin.initialize(initSettings);
+    try {
+      const androidInit = AndroidInitializationSettings(
+        '@drawable/splash_logo',
+      );
+      const linuxInit = LinuxInitializationSettings(defaultActionName: 'Open');
+      // (Optional) add iOS/macOS later if needed
+      const initSettings = InitializationSettings(
+        android: androidInit,
+        linux: linuxInit,
+      );
+      await _plugin.initialize(initSettings);
+    } catch (e) {
+      // ignore: avoid_print
+      print('LocalNotifications initialize failed: $e');
+      rethrow;
+    }
 
     const channel = AndroidNotificationChannel(
       _channelId,
@@ -31,21 +39,26 @@ class NotificationService {
       importance: Importance.high,
     );
 
-    final androidImpl = _plugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
-    await androidImpl?.createNotificationChannel(channel);
+    try {
+      final androidImpl = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      await androidImpl?.createNotificationChannel(channel);
 
-    if (Platform.isAndroid) {
-      // Izin Android 13+
-      try {
-        await (androidImpl as dynamic)?.requestNotificationsPermission();
-      } catch (_) {
+      if (Platform.isAndroid) {
+        // Izin Android 13+
         try {
-          await (androidImpl as dynamic)?.requestPermission();
-        } catch (_) {}
+          await (androidImpl as dynamic)?.requestNotificationsPermission();
+        } catch (_) {
+          try {
+            await (androidImpl as dynamic)?.requestPermission();
+          } catch (_) {}
+        }
       }
+    } catch (e) {
+      // ignore: avoid_print
+      print('LocalNotifications Android channel/permission failed: $e');
     }
   }
 
