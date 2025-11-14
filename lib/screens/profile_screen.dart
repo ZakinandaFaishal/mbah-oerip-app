@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -17,11 +16,18 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-
     ImageProvider avatar;
-    final pic = auth.profilePicPath;
-    if (pic != null && pic.isNotEmpty && File(pic).existsSync()) {
-      avatar = FileImage(File(pic));
+    final urlFromMeta = auth.profilePicPath; // sebenarnya URL dari metadata
+    final urlFromState =
+        auth.profilePicUrl; // URL terakhir yang diupload via updateProfile
+    final useUrl = (urlFromState != null && urlFromState.isNotEmpty)
+        ? urlFromState
+        : (urlFromMeta != null && urlFromMeta.startsWith('http')
+              ? urlFromMeta
+              : null);
+
+    if (useUrl != null) {
+      avatar = NetworkImage(useUrl);
     } else {
       avatar = const NetworkImage(kDefaultAvatarUrl);
     }

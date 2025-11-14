@@ -1,147 +1,165 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
-import '../utils/snackbar_utils.dart';
+import '../theme.dart';
 
-class FeedbackScreen extends StatefulWidget {
+class FeedbackScreen extends StatelessWidget {
   const FeedbackScreen({super.key});
-
-  @override
-  State<FeedbackScreen> createState() => _FeedbackScreenState();
-}
-
-class _FeedbackScreenState extends State<FeedbackScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _feedbackController = TextEditingController();
-
-  late Box _feedbackBox;
-  StreamSubscription? _sub;
-  List<MapEntry<dynamic, dynamic>> _entries = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _initBox();
-  }
-
-  Future<void> _initBox() async {
-    // Box sudah dibuka di main.dart, tapi aman-kan jika belum
-    if (!Hive.isBoxOpen('feedback')) {
-      _feedbackBox = await Hive.openBox('feedback');
-    } else {
-      _feedbackBox = Hive.box('feedback');
-    }
-    _reloadEntries();
-
-    // Dengarkan perubahan agar list otomatis ter-update
-    _sub = _feedbackBox.watch().listen((_) => _reloadEntries());
-  }
-
-  void _reloadEntries() {
-    final map = _feedbackBox.toMap();
-    // Urutkan dari terbaru (key timestamp ISO) ke lama
-    final list = map.entries.toList()
-      ..sort((a, b) => (b.key as String).compareTo(a.key as String));
-    setState(() => _entries = list);
-  }
-
-  void _submitFeedback() {
-    if (_formKey.currentState!.validate()) {
-      final key = DateTime.now().toIso8601String();
-      _feedbackBox.put(key, _feedbackController.text.trim());
-
-      _feedbackController.clear();
-      showModernSnackBar(
-        context,
-        message: 'Terima kasih atas saran & kesannya!',
-        icon: Icons.check_circle,
-        color: Colors.green.shade600,
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _feedbackController.dispose();
-    _sub?.cancel();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Saran & Kesan')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Form(
-              key: _formKey,
-              child: TextFormField(
-                controller: _feedbackController,
-                maxLines: 6,
-                decoration: const InputDecoration(
-                  labelText: 'Saran & kesan untuk Pemrograman Aplikasi Mobile',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Mohon isi saran dan kesan Anda.';
-                  }
-                  return null;
-                },
+          children: const [
+            _Header(),
+            SizedBox(height: 12),
+            _SectionCard(
+              title: 'Kesan Selama Mengikuti Mata Kuliah',
+              icon: Icons.emoji_emotions_outlined,
+              child: Text(
+                'Selama mengikuti mata kuliah Pemrograman Aplikasi Mobile (PAM), saya mendapatkan pengalaman '
+                'transformatif serta pengetahuan fundamental dan praktis mengenai bagaimana sebuah aplikasi modern '
+                'dirancang, dibangun, dan dioperasikan pada perangkat mobile. Mata kuliah ini berjalan dengan sangat '
+                'menarik dan terasa cukup menantang, karena keseimbangan yang tepat antara penyampaian teori dan '
+                'praktik langsung. Metode ini memungkinkan saya untuk tidak hanya "tahu", tetapi juga "bisa" '
+                'mengimplementasikan alur kerja pengembangan aplikasi secara end-to-end, mulai dari ide hingga '
+                'menjadi produk fungsional.',
+                style: TextStyle(height: 1.5),
               ),
             ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: _submitFeedback,
-              child: const Text('KIRIM'),
+            SizedBox(height: 12),
+            _SectionCard(
+              title: 'Saran untuk Pengembangan Mata Kuliah',
+              icon: Icons.lightbulb_outline,
+              child: _SuggestionList(),
             ),
-            const SizedBox(height: 16),
-            const Divider(),
-            const SizedBox(height: 8),
-            const Text(
-              'Riwayat Saran & Kesan',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: _entries.isEmpty
-                  ? const Center(child: Text('Belum ada masukan.'))
-                  : ListView.separated(
-                      itemCount: _entries.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (_, i) {
-                        final e = _entries[i];
-                        final ts = e.key as String;
-                        final txt = e.value as String;
-                        final dt = DateTime.tryParse(ts);
-                        return ListTile(
-                          title: Text(txt),
-                          subtitle: dt == null
-                              ? null
-                              : Text(
-                                  '${dt.day.toString().padLeft(2, '0')}-'
-                                  '${dt.month.toString().padLeft(2, '0')}-'
-                                  '${dt.year} ${dt.hour.toString().padLeft(2, '0')}:'
-                                  '${dt.minute.toString().padLeft(2, '0')}',
-                                ),
-                          trailing: IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.red,
-                            ),
-                            onPressed: () => _feedbackBox.delete(ts),
-                            tooltip: 'Hapus',
-                          ),
-                        );
-                      },
-                    ),
+            SizedBox(height: 12),
+            _SectionCard(
+              title: 'Ucapan Terima Kasih',
+              icon: Icons.favorite_border,
+              child: Text(
+                'Pada kesempatan ini, saya ingin mengucapkan terima kasih yang sebesar-besarnya kepada '
+                'Bapak Bagus Muhammad Akbar, S.ST., M.Kom., selaku dosen pengampu. Bimbingan, kesabaran, dan '
+                'penjelasan yang jelas serta terstruktur selama perkuliahan sangat membantu saya dalam memahami '
+                'materi yang kompleks.\n\n'
+                'Tidak lupa, saya juga berterima kasih kepada rekan-rekan dan teman-teman atas lingkungan belajar '
+                'yang kolaboratif. Sesi diskusi, kerja sama, dan kesediaan untuk saling membantu, baik di dalam maupun '
+                'di luar jam perkuliahan, membuat proses belajar yang menantang ini menjadi jauh lebih ringan, '
+                'menyenangkan, dan bermakna.',
+                style: TextStyle(height: 1.5),
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: AppTheme.primaryOrange.withOpacity(.08),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: const [
+            CircleAvatar(
+              backgroundColor: AppTheme.primaryOrange,
+              child: Icon(Icons.rate_review, color: Colors.white),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Saran & kesan untuk mata kuliah Pemrograman Aplikasi Mobile',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Widget child;
+  const _SectionCard({
+    required this.title,
+    required this.icon,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: AppTheme.primaryOrange),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SuggestionList extends StatelessWidget {
+  const _SuggestionList();
+
+  @override
+  Widget build(BuildContext context) {
+    final suggestions = <String>[
+      'Saran dari saya agar pada perkuliahan berikutnya diberikan lebih banyak contoh studi kasus yang mendekati kebutuhan pengembangan aplikasi di dunia nyata, serta kesempatan untuk melakukan mini project secara bertahap sehingga mahasiswa dapat lebih terarah dalam memahami alur pengembangan aplikasi dari awal hingga akhir. Dengan demikian, materi yang telah disampaikan tidak hanya dipahami secara teori, tetapi juga lebih maksimal dalam penerapannya.',
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: suggestions
+          .map(
+            (s) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.check_circle_outline,
+                    size: 18,
+                    color: AppTheme.primaryOrange,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(s, style: const TextStyle(height: 1.5))),
+                ],
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 }

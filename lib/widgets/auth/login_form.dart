@@ -12,6 +12,7 @@ class LoginForm extends StatelessWidget {
 
   final TextEditingController fullNameController;
   final TextEditingController phoneController;
+  final TextEditingController emailController;
   final TextEditingController usernameController;
   final TextEditingController passwordController;
 
@@ -26,6 +27,7 @@ class LoginForm extends StatelessWidget {
     required this.onToggleObscure,
     required this.fullNameController,
     required this.phoneController,
+    required this.emailController,
     required this.usernameController,
     required this.passwordController,
     required this.onSubmit,
@@ -76,17 +78,43 @@ class LoginForm extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-            ],
-            TextFormField(
-              controller: usernameController,
-              validator: (v) =>
-                  (v?.isEmpty ?? true) ? 'Username tidak boleh kosong' : null,
-              decoration: buildInputDecoration(
-                "Username",
-                Icons.account_circle_outlined,
+              TextFormField(
+                controller: usernameController,
+                validator: (v) =>
+                    (v?.isEmpty ?? true) ? 'Username tidak boleh kosong' : null,
+                decoration: buildInputDecoration(
+                  "Username",
+                  Icons.account_circle_outlined,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                validator: (v) {
+                  final t = v?.trim() ?? '';
+                  if (t.isEmpty) return 'Email tidak boleh kosong';
+                  if (!t.contains('@')) return 'Email tidak valid';
+                  return null;
+                },
+                decoration: buildInputDecoration("Email", Icons.email_outlined),
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (isLogin) ...[
+              TextFormField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                validator: (v) {
+                  final t = v?.trim() ?? '';
+                  if (t.isEmpty) return 'Email tidak boleh kosong';
+                  if (!t.contains('@')) return 'Email tidak valid';
+                  return null;
+                },
+                decoration: buildInputDecoration("Email", Icons.email_outlined),
+              ),
+              const SizedBox(height: 12),
+            ],
             TextFormField(
               controller: passwordController,
               obscureText: obscurePassword,

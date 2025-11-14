@@ -21,21 +21,32 @@ class LogoHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isNetwork = imageUrl.startsWith('http');
     return Column(
       children: [
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 260),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Icon(
-                Icons.restaurant_rounded,
-                size: 100,
-                color: AppTheme.primaryOrange,
-              ),
-            ),
+            child: isNetwork
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.restaurant_rounded,
+                      size: 100,
+                      color: AppTheme.primaryOrange,
+                    ),
+                  )
+                : Image.asset(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.restaurant_rounded,
+                      size: 100,
+                      color: AppTheme.primaryOrange,
+                    ),
+                  ),
           ),
         ),
         const SizedBox(height: 16),

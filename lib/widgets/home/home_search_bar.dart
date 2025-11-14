@@ -34,7 +34,7 @@ class HomeSearchBar extends StatelessWidget {
               prefixIcon: const Icon(
                 Icons.search,
                 color: AppTheme.primaryOrange,
-                ),
+              ),
               suffixIcon: query.isNotEmpty
                   ? IconButton(
                       tooltip: 'Bersihkan',

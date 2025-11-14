@@ -7,7 +7,6 @@ import '../../models/menu_item.dart';
 import '../../providers/cart_provider.dart';
 import '../../screens/cart_screen.dart';
 import '../../screens/menu_detail_screen.dart';
-import '../../theme.dart';
 import 'home_menu_card.dart';
 import 'section_title.dart';
 import '../../utils/snackbar_utils.dart';

@@ -15,7 +15,7 @@ List<MenuItem> filterMenuItems(
     final q = query.toLowerCase();
     filtered = filtered.where((i) {
       final name = i.name.toLowerCase();
-      final desc = (i.description ?? '').toLowerCase();
+      final desc = i.description.toLowerCase();
       return name.contains(q) || desc.contains(q);
     }).toList();
   }

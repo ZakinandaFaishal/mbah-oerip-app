@@ -16,21 +16,29 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _goNext();
+    // jalankan setelah frame pertama agar context siap
+    WidgetsBinding.instance.addPostFrameCallback((_) => _goNext());
   }
 
   Future<void> _goNext() async {
-    // jeda singkat agar logo terlihat
-    await Future.delayed(const Duration(milliseconds: 2000));
+    await Future.delayed(const Duration(milliseconds: 1200));
     if (!mounted) return;
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) =>
-            auth.isLoggedIn ? const MainScreen() : const LoginScreen(),
-      ),
-    );
+    try {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) =>
+              auth.isLoggedIn ? const MainScreen() : const LoginScreen(),
+        ),
+      );
+    } catch (_) {
+      // fallback ke login agar tidak “stuck”
+      if (!mounted) return;
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
+    }
   }
 
   @override

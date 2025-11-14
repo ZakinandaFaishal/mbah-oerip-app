@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme.dart';
 import 'constants.dart';
+import '../../utils/phone_utils.dart';
 
 Future<void> showEditProfileSheet(
   BuildContext context,
@@ -12,7 +13,7 @@ Future<void> showEditProfileSheet(
 ) async {
   final nameCtrl = TextEditingController(text: auth.displayName);
   final phoneCtrl = TextEditingController(text: auth.phoneNumber);
-  String? avatarPath = auth.profilePicPath;
+  String? avatarPath; // gunakan file lokal untuk preview baru
 
   await showModalBottomSheet(
     context: context,
@@ -48,13 +49,25 @@ Future<void> showEditProfileSheet(
               Stack(
                 alignment: Alignment.bottomRight,
                 children: [
-                  CircleAvatar(
-                    radius: 64,
-                    backgroundColor: AppTheme.primaryOrange.withOpacity(.15),
-                    backgroundImage:
-                        (avatarPath != null && avatarPath!.isNotEmpty)
-                        ? FileImage(File(avatarPath!))
-                        : const NetworkImage(kDefaultAvatarUrl),
+                  Builder(
+                    builder: (context) {
+                      late final ImageProvider bgImage;
+                      if (avatarPath != null && avatarPath!.isNotEmpty) {
+                        bgImage = FileImage(File(avatarPath!));
+                      } else if (auth.profilePicPath != null &&
+                          auth.profilePicPath!.startsWith('http')) {
+                        bgImage = NetworkImage(auth.profilePicPath!);
+                      } else {
+                        bgImage = const NetworkImage(kDefaultAvatarUrl);
+                      }
+                      return CircleAvatar(
+                        radius: 64,
+                        backgroundColor: AppTheme.primaryOrange.withOpacity(
+                          .15,
+                        ),
+                        backgroundImage: bgImage,
+                      );
+                    },
                   ),
                   Material(
                     color: Colors.white,
@@ -133,13 +146,31 @@ Future<void> showEditProfileSheet(
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    context.read<AuthProvider>().updateProfile(
-                      displayName: nameCtrl.text.trim(),
-                      phoneNumber: phoneCtrl.text.trim(),
-                      profilePicPath: avatarPath,
+                  onPressed: () async {
+                    final normalizedPhone = PhoneUtils.normalizeID(
+                      phoneCtrl.text.trim(),
                     );
-                    Navigator.pop(context);
+                    final err = await context
+                        .read<AuthProvider>()
+                        .updateProfile(
+                          displayName: nameCtrl.text.trim(),
+                          phoneNumber: normalizedPhone,
+                          profilePicPath: avatarPath,
+                        );
+                    if (!context.mounted) return;
+                    if (err != null) {
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(err)));
+                    } else {
+                      // Tampilkan snackbar sukses sebelum menutup sheet
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Profil berhasil diperbarui'),
+                        ),
+                      );
+                      Navigator.pop(context);
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryOrange,

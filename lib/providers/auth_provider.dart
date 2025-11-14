@@ -1,146 +1,225 @@
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+// Dapatkan client Supabase global dari main.dart
+final supabase = Supabase.instance.client;
 
 class AuthProvider extends ChangeNotifier {
-  // Box sudah dibuka di main.dart
-  final Box _userBox = Hive.box('users');
-  final Box _sessionBox = Hive.box('session');
-
-  bool _isLoggedIn = false;
   bool _isGuest = false;
-  String? _loggedInUser;
-  String _username = '';
-  String _displayName = '';
-  String? _phoneNumber = ''; // tambah penyimpanan no HP
-  String? _profilePicPath;
 
-  bool get isLoggedIn => _isLoggedIn;
-  String get username => _loggedInUser ?? '';
+  // Sumber kebenaran (source of truth) kita sekarang adalah Supabase User
+  User? get _currentUser => supabase.auth.currentUser;
 
-  Map<String, dynamic>? get currentUserData {
-    if (_loggedInUser == null) return null;
-    final raw = _userBox.get(_loggedInUser);
-    if (raw is Map) return Map<String, dynamic>.from(raw as Map);
-    return null;
-  }
-
-  String get displayName =>
-      currentUserData?['fullName']?.toString().trim().isNotEmpty == true
-      ? currentUserData!['fullName'] as String
-      : username;
-
-  String? get profilePicPath => _profilePicPath;
-
+  // --- GETTERS (Mirip seperti yang Anda punya) ---
+  bool get isLoggedIn => _currentUser != null;
   bool get isGuest => _isGuest;
 
-  // Getter phoneNumber yang aman (non-nullable) membaca dari Hive
+  // Email resmi dari auth
+  String get email => _currentUser?.email ?? '';
+
+  // Username disimpan di metadata (bukan email)
+  String get username =>
+      (currentUserData?['username'] as String?)?.trim() ?? '';
+
+  // Data user (full_name, dll) disimpan di 'user_metadata' Supabase
+  Map<String, dynamic>? get currentUserData {
+    if (_currentUser == null) return null;
+    return _currentUser!.userMetadata;
+  }
+
+  // Getter 'displayName' membaca dari metadata
+  String get displayName =>
+      currentUserData?['full_name']?.toString().trim().isNotEmpty == true
+      ? currentUserData!['full_name'] as String
+      : (username.isNotEmpty ? username : email);
+
+  // Getter 'profilePicPath' membaca dari metadata
+  String? get profilePicPath => currentUserData?['profilePic'];
+
+  // Getter 'phoneNumber' membaca dari metadata
   String get phoneNumber =>
       (currentUserData?['phoneNumber'] as String?)?.trim() ?? '';
 
+  String? _profilePicUrl;
+  String? get profilePicUrl => _profilePicUrl;
+
+  // --- KONSTRUKTOR ---
   AuthProvider() {
-    _checkLoginStatus();
+    _checkLoginStatus(); // Cek status awal saat app dibuka
+
+    // INI BAGIAN PENTING:
+    // Dengarkan perubahan status auth dari Supabase (login, logout)
+    supabase.auth.onAuthStateChange.listen((data) {
+      _checkLoginStatus();
+      notifyListeners(); // Beri tahu UI bahwa ada perubahan
+    });
   }
 
+  // --- FUNGSI INTERNAL ---
   void _checkLoginStatus() {
-    _loggedInUser = _sessionBox.get('currentUser') as String?;
-    _isLoggedIn = _loggedInUser != null;
-    // If session contains guest flag, treat as guest
-    final guestFlag = _sessionBox.get('isGuest');
-    _isGuest = guestFlag == true;
+    // Jika user sudah login di Supabase, pastikan mode Guest mati
+    if (isLoggedIn) {
+      _isGuest = false;
+    }
   }
 
-  // Sign in as a local guest (no backend). Guest can browse but cannot checkout.
+  // --- METODE/FUNGSI (Logika diubah ke Supabase) ---
+
   Future<void> signInAsGuest() async {
-    _isGuest = true;
-    _isLoggedIn = false; // not a real authenticated user
-    _loggedInUser = null;
-    await _sessionBox.put('isGuest', true);
+    // Jika user login (di Supabase), logout dulu
+    if (isLoggedIn) {
+      await supabase.auth.signOut();
+    }
+    _isGuest = true; // tidak disimpan lokal lagi
     notifyListeners();
   }
 
-  String _hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  }
-
-  // Panggil ini untuk update profil dari UI (tersimpan ke Hive)
-  Future<void> updateProfile({
+  Future<String?> updateProfile({
     String? displayName,
     String? phoneNumber,
+    String? username,
     String? profilePicPath,
   }) async {
-    if (_loggedInUser == null) return;
-    final data = Map<String, dynamic>.from(currentUserData ?? {});
-    if (displayName != null) data['fullName'] = displayName;
-    if (phoneNumber != null) data['phoneNumber'] = phoneNumber;
-    if (profilePicPath != null) data['profilePic'] = profilePicPath;
-    await _userBox.put(_loggedInUser, data);
-    // sinkronkan cache lokal opsional
-    if (displayName != null) _displayName = displayName;
-    if (phoneNumber != null) _phoneNumber = phoneNumber;
-    if (profilePicPath != null) _profilePicPath = profilePicPath;
-    notifyListeners();
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return 'Belum login';
+
+    String? publicUrl;
+    try {
+      if (profilePicPath != null && profilePicPath.isNotEmpty) {
+        final file = File(profilePicPath);
+        final ext = file.path.split('.').last.toLowerCase();
+        final storagePath = 'users/${user.id}/avatar.$ext';
+        await Supabase.instance.client.storage
+            .from('avatars')
+            .upload(
+              storagePath,
+              file,
+              fileOptions: const FileOptions(upsert: true),
+            );
+        publicUrl = Supabase.instance.client.storage
+            .from('avatars')
+            .getPublicUrl(storagePath);
+      }
+
+      // Note: Do NOT set the 'phone' attribute here, as it triggers SMS verification
+      // and fails when no SMS provider is configured. Store in metadata only.
+      final attrs = UserAttributes(
+        data: {
+          if (displayName != null) 'full_name': displayName,
+          if (username != null) 'username': username,
+          if (phoneNumber != null) 'phoneNumber': phoneNumber,
+          if (publicUrl != null) 'profilePic': publicUrl,
+        },
+      );
+
+      await Supabase.instance.client.auth.updateUser(attrs);
+      _profilePicUrl = publicUrl ?? _profilePicUrl;
+      notifyListeners();
+      return null;
+    } on AuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      return 'Gagal memperbarui profil';
+    }
   }
 
-  Future<bool> register(
-    String username,
+  // Convenience wrapper if UI only wants to update the avatar
+  Future<String?> updateProfilePic(String? filePath) async {
+    return updateProfile(profilePicPath: filePath);
+  }
+
+  // Utility: check if the 'avatars' bucket exists (useful for diagnostics)
+  Future<bool> avatarsBucketExists() async {
+    final buckets = await supabase.storage.listBuckets();
+    return buckets.any((b) => b.id == 'avatars');
+  }
+
+  // Fungsi Register (diubah dari username ke email)
+  Future<String?> register(
+    String email, // <-- PENTING: Supabase menggunakan email
     String password,
     String fullName,
     String phoneNumber,
+    String username,
   ) async {
-    if (_userBox.containsKey(username)) {
-      return false; // Username sudah ada
+    try {
+      final redirect = 'ingkung-mbah-oerip://login-callback';
+      final response = await supabase.auth.signUp(
+        email: email,
+        password: password,
+        data: {
+          'full_name': fullName,
+          'username': username,
+          'phoneNumber': phoneNumber,
+        },
+        emailRedirectTo: redirect, // penting: override localhost
+      );
+
+      if (response.user == null) {
+        return "Registrasi gagal, user tidak dibuat.";
+      }
+      // Beberapa versi Supabase Flutter kadang belum melampirkan metadata penuh
+      // setelah signUp. Paksa update ulang metadata (tanpa set kolom auth.phone
+      // agar tidak memicu SMS provider yang belum dikonfigurasi).
+      try {
+        await supabase.auth.updateUser(
+          UserAttributes(
+            data: {
+              'full_name': fullName,
+              'phoneNumber': phoneNumber,
+              'username': username,
+              'profilePic': null,
+            },
+          ),
+        );
+      } catch (e) {
+        debugPrint('Fallback update metadata/phone gagal: $e');
+      }
+
+      // Opsional: simpan ke tabel profiles untuk jaga unik username (abaikan error jika tabel belum ada)
+      try {
+        await supabase.from('profiles').upsert({
+          'user_id': response.user!.id,
+          'username': username,
+          'full_name': fullName,
+          'phone_number': phoneNumber,
+          'profile_pic': null,
+        });
+      } catch (e) {
+        debugPrint('Insert profiles diabaikan: $e');
+      }
+      // 'onAuthStateChange' akan menangani sisanya
+      return null; // Sukses, tidak ada error
+    } catch (e) {
+      debugPrint("Error register: $e");
+      return e.toString(); // Kembalikan pesan error
     }
-    final hashedPassword = _hashPassword(password);
-    await _userBox.put(username, {
-      'passwordHash': hashedPassword,
-      'fullName': fullName,
-      'profilePic': null,
-      'phoneNumber': phoneNumber,
-    });
-    _username = username;
-    _displayName = fullName;
-    _phoneNumber = phoneNumber; // simpan no HP
-    notifyListeners();
-    return true;
   }
 
-  Future<bool> login(String username, String password) async {
-    if (!_userBox.containsKey(username)) {
-      return false; // User tidak ditemukan
-    }
+  // Fungsi Login (diubah dari username ke email)
+  Future<String?> login(String email, String password) async {
+    try {
+      final response = await supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
 
-    final userData = _userBox.get(username);
-    final storedHash = userData['passwordHash'];
-    final inputHash = _hashPassword(password);
-
-    if (storedHash == inputHash) {
-      _isLoggedIn = true;
-      _loggedInUser = username;
-      await _sessionBox.put('currentUser', username); // Simpan sesi
-      notifyListeners();
-      return true;
+      if (response.user == null) {
+        return "Login gagal, data user tidak ditemukan.";
+      }
+      // 'onAuthStateChange' akan menangani sisanya
+      return null; // Sukses, tidak ada error
+    } catch (e) {
+      debugPrint("Error login: $e");
+      return e.toString(); // Kembalikan pesan error
     }
-    return false;
   }
 
+  // Fungsi Logout
   Future<void> logout() async {
-    await _sessionBox.clear(); // Hapus sesi
-    _isLoggedIn = false;
-    _loggedInUser = null;
-    _isGuest = false;
-    notifyListeners();
-  }
-
-  // Tambahkan helper untuk update foto profil
-  Future<void> updateProfilePic(String? filePath) async {
-    if (_loggedInUser == null) return;
-    final data = Map<String, dynamic>.from(currentUserData ?? {});
-    data['profilePic'] = filePath; // boleh null untuk hapus foto
-    await _userBox.put(_loggedInUser, data);
-    notifyListeners();
+    _isGuest = false; // reset flag guest di memori
+    await supabase.auth.signOut();
+    // 'onAuthStateChange' akan menangani sisanya
   }
 }

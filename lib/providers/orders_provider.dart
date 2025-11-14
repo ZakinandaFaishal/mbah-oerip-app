@@ -20,18 +20,22 @@ class OrdersProvider extends ChangeNotifier {
       result.add(
         OrderRecord(
           id: r['id'] as String,
-          createdAt: DateTime.fromMillisecondsSinceEpoch(r['created_at'] as int),
+          createdAt: r['created_at'] is int
+              ? DateTime.fromMillisecondsSinceEpoch(r['created_at'] as int)
+              : DateTime.parse(r['created_at'] as String),
           status: r['status'] as String,
           totalInIDR: r['total_idr'] as int,
           orderType: r['order_type'] as String?,
           deliveryAddress: r['delivery_address'] as String?,
           items: itemsRows
-              .map((it) => OrderItemRecord(
-                    name: it['name'] as String,
-                    imageUrl: it['image_url'] as String?,
-                    priceInIDR: it['price_idr'] as int,
-                    quantity: it['quantity'] as int,
-                  ))
+              .map(
+                (it) => OrderItemRecord(
+                  name: it['name'] as String,
+                  imageUrl: it['image_url'] as String?,
+                  priceInIDR: it['price_idr'] as int,
+                  quantity: it['quantity'] as int,
+                ),
+              )
               .toList(),
         ),
       );
@@ -42,22 +46,27 @@ class OrdersProvider extends ChangeNotifier {
   }
 
   // Dipanggil saat checkout; tidak mengubah logika cart, hanya menyimpan ke DB
-  Future<String> saveFromCart(CartProvider cart, {String status = 'Menunggu'}) async {
+  Future<String> saveFromCart(
+    CartProvider cart, {
+    String status = 'Menunggu',
+  }) async {
     final id = 'INV-${DateTime.now().millisecondsSinceEpoch}';
     await _db.insertOrder(
       id: id,
       createdAt: DateTime.now(),
       status: status,
       totalInIDR: cart.subtotalIDR,
-      orderType: cart.orderType.name,          // gunakan properti yang sudah ada
-      deliveryAddress: cart.deliveryAddress,   // gunakan properti yang sudah ada
+      orderType: cart.orderType.name, // gunakan properti yang sudah ada
+      deliveryAddress: cart.deliveryAddress, // gunakan properti yang sudah ada
       items: cart.items
-          .map((e) => {
-                'name': e.name,
-                'image_url': e.imageUrl,
-                'price_idr': e.priceInIDR,
-                'quantity': e.quantity,
-              })
+          .map(
+            (e) => {
+              'name': e.name,
+              'image_url': e.imageUrl,
+              'price_idr': e.priceInIDR,
+              'quantity': e.quantity,
+            },
+          )
           .toList(),
     );
     await load();

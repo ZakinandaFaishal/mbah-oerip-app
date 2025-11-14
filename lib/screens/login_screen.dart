@@ -3,11 +3,11 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'main_screen.dart';
 import '../theme.dart';
-import '../utils/password_hasher.dart';
 import '../widgets/auth/logo_header.dart';
 import '../widgets/auth/login_form.dart';
 import '../widgets/auth/auth_toggle_text.dart';
-// imports cleaned
+import 'package:url_launcher/url_launcher.dart';
+import '../utils/phone_utils.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,20 +18,22 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController(); // RENAMED
   final _passwordController = TextEditingController();
   final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _usernameController = TextEditingController();
   bool _isLogin = true;
   bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     _fullNameController.dispose();
     _phoneController.dispose();
+    _usernameController.dispose();
     super.dispose();
   }
 
@@ -40,48 +42,120 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    bool success = false;
+    String? error;
 
     try {
-      final hashed = await PasswordHasher.hash(_passwordController.text.trim());
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
 
       if (_isLogin) {
-        success = await authProvider.login(
-          _usernameController.text.trim(),
-          hashed,
-        );
+        // Login normal
+        error = await authProvider.login(email, password);
+        if (error == null && mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const MainScreen()),
+          );
+          return;
+        }
       } else {
-        success = await authProvider.register(
-          _usernameController.text.trim(),
-          hashed,
-          _fullNameController.text.trim(),
+        // Registrasi: JANGAN auto-login ketika email confirmation aktif.
+        // Tampilkan dialog agar user memverifikasi email terlebih dahulu.
+        final normalizedPhone = PhoneUtils.normalizeID(
           _phoneController.text.trim(),
         );
-        if (success) {
-          success = await authProvider.login(
-            _usernameController.text.trim(),
-            hashed,
-          );
+        error = await authProvider.register(
+          email,
+          password,
+          _fullNameController.text.trim(),
+          normalizedPhone,
+          _usernameController.text.trim(),
+        );
+
+        if (error == null) {
+          // Sukses mendaftar, arahkan user untuk verifikasi email-nya.
+          if (mounted) {
+            await _showVerifyDialog(email);
+          }
+          return;
         }
       }
 
-      if (success && mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const MainScreen()),
-        );
-      } else {
-        _showErrorDialog(
-          _isLogin ? 'Login Gagal' : 'Registrasi Gagal',
-          _isLogin
-              ? 'Username atau password salah.'
-              : 'Username mungkin sudah digunakan.',
-        );
+      // Jika ada error dari proses di atas
+      if (error != null) {
+        // Tangani pesan khusus: Email not confirmed
+        if (!_isLogin && error.toLowerCase().contains('email')) {
+          await _showVerifyDialog(_emailController.text.trim());
+        } else if (_isLogin &&
+            error.toLowerCase().contains('email not confirmed')) {
+          await _showVerifyDialog(_emailController.text.trim());
+        } else {
+          _showErrorDialog(
+            _isLogin ? 'Login Gagal' : 'Registrasi Gagal',
+            error,
+          );
+        }
       }
-    } catch (_) {
+    } catch (e) {
       _showErrorDialog('Terjadi Kesalahan', 'Tidak dapat terhubung ke server.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _showVerifyDialog(String email) async {
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Verifikasi Email Diperlukan'),
+        content: Text(
+          'Kami telah mengirimkan tautan verifikasi ke $email.\n\n'
+          'Silakan buka email Anda lalu klik tautan verifikasi. Setelah itu, kembali ke aplikasi dan coba login lagi.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              // Coba buka aplikasi email atau Gmail web
+              final mailto = Uri.parse('mailto:$email');
+              final gmail = Uri.parse('https://mail.google.com/');
+              if (await canLaunchUrl(mailto)) {
+                await launchUrl(mailto);
+              } else {
+                await launchUrl(gmail, mode: LaunchMode.externalApplication);
+              }
+            },
+            child: const Text(
+              'Buka Email',
+              style: TextStyle(color: AppTheme.primaryOrange),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              // Setelah user mengonfirmasi dari email, coba login lagi
+              setState(() => _isLoading = true);
+              final error =
+                  await Provider.of<AuthProvider>(context, listen: false).login(
+                    _emailController.text.trim(),
+                    _passwordController.text.trim(),
+                  );
+              setState(() => _isLoading = false);
+              if (error == null && mounted) {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const MainScreen()),
+                );
+              } else if (error != null) {
+                _showErrorDialog('Login Gagal', error);
+              }
+            },
+            child: const Text(
+              'Saya Sudah Verifikasi',
+              style: TextStyle(color: AppTheme.primaryOrange),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showErrorDialog(String title, String message) {
@@ -130,8 +204,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       'Nikmati pengalaman kuliner terbaik bersama kami',
                   subtitleRegister: 'Daftar untuk memulai pengalaman kuliner',
                   // Gambar dari URL (bukan asset)
-                  imageUrl:
-                      'https://monitoringweb.decoratics.id/images/mbah-oerip/1761922682.png',
+                  imageUrl: 'assets/images/logo.png',
                 ),
                 const SizedBox(height: 22),
 
@@ -144,6 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       setState(() => _obscurePassword = !_obscurePassword),
                   fullNameController: _fullNameController,
                   phoneController: _phoneController,
+                  emailController: _emailController,
                   usernameController: _usernameController,
                   passwordController: _passwordController,
                   onSubmit: _submit,
@@ -183,10 +257,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   onToggle: () {
                     setState(() {
                       _isLogin = !_isLogin;
-                      _usernameController.clear();
+                      _emailController.clear();
                       _passwordController.clear();
                       _fullNameController.clear();
                       _phoneController.clear();
+                      _usernameController.clear();
                     });
                   },
                 ),

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:intl/intl.dart';
 
@@ -13,10 +14,15 @@ class NotificationService {
   static const String _channelDesc = 'Notifications for order updates';
 
   Future<void> init() async {
-    // gunakan small icon monochrome
+    // Android & Linux need explicit initialization settings.
     const androidInit = AndroidInitializationSettings('@drawable/splash_logo');
-    const settings = InitializationSettings(android: androidInit);
-    await _plugin.initialize(settings);
+    const linuxInit = LinuxInitializationSettings(defaultActionName: 'Open');
+    // (Optional) add iOS/macOS later if needed
+    const initSettings = InitializationSettings(
+      android: androidInit,
+      linux: linuxInit,
+    );
+    await _plugin.initialize(initSettings);
 
     const channel = AndroidNotificationChannel(
       _channelId,
@@ -31,13 +37,15 @@ class NotificationService {
         >();
     await androidImpl?.createNotificationChannel(channel);
 
-    // Izin Android 13+
-    try {
-      await (androidImpl as dynamic)?.requestNotificationsPermission();
-    } catch (_) {
+    if (Platform.isAndroid) {
+      // Izin Android 13+
       try {
-        await (androidImpl as dynamic)?.requestPermission();
-      } catch (_) {}
+        await (androidImpl as dynamic)?.requestNotificationsPermission();
+      } catch (_) {
+        try {
+          await (androidImpl as dynamic)?.requestPermission();
+        } catch (_) {}
+      }
     }
   }
 

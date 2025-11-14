@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:ingkung_mbah_oerip/services/location_services.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../providers/auth_provider.dart';
-import '../providers/cart_provider.dart';
 import '../services/api_service.dart';
 import '../models/menu_item.dart';
-import '../theme.dart';
 import '../widgets/home/header_sliver_app_bar.dart';
 import '../widgets/home/opening_hours_card.dart';
 import '../widgets/home/promo_carousel.dart';
@@ -109,7 +106,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final fullName = auth.currentUserData?['fullName'] ?? 'Pelanggan';
+    // Metadata key konsisten dengan AuthProvider: 'full_name'
+    final fullName = auth.currentUserData?['full_name'] ?? 'Pelanggan';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -130,7 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
               setState(() => _homeSearchQuery = '');
             },
             onDirectionTap: () {
-          LocationService().openDirectionsInGoogleMaps(context);
+              LocationService().openDirectionsInGoogleMaps(context);
             },
           ),
 

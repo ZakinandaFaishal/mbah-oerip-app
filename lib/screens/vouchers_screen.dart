@@ -7,7 +7,6 @@ import '../widgets/voucher/shake_promo_banner.dart';
 import '../theme.dart';
 import '../widgets/home/voucher_banner.dart';
 
-
 class VouchersScreen extends StatefulWidget {
   const VouchersScreen({super.key});
 
@@ -24,10 +23,7 @@ class _VouchersScreenState extends State<VouchersScreen> {
   @override
   void initState() {
     super.initState();
-    _shake = ShakeDetector(
-      onShake: _onShake,
-      threshold: 18.0, // bisa turunkan jika terlalu sensitif: 14–16
-    );
+    _shake = ShakeDetector(onShake: _onShake, threshold: 18.0);
     _shake.start();
   }
 
@@ -61,8 +57,6 @@ class _VouchersScreenState extends State<VouchersScreen> {
       onAction: () => Clipboard.setData(ClipboardData(text: code)),
     );
   }
-
-  void _testTap() => _onShake(); // untuk emulator
 
   @override
   Widget build(BuildContext context) {
